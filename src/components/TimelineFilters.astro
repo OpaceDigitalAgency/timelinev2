@@ -182,45 +182,81 @@ const { currentView = 'horizontal' } = Astro.props;
       return filters;
     }
     
-    // Extract the filter segments
+    // Extract the filter string
     const filterPart = path.split('/filter/')[1];
     if (!filterPart) {
       return filters;
     }
     
-    // Split by slash and process segments
-    const segments = filterPart.split('/').filter(Boolean);
+    // Get all era checkboxes to match against their labels
+    const eraCheckboxes = Array.from(document.querySelectorAll('input[name="era-filter"]'));
+    const eraLabels = eraCheckboxes.map(cb => {
+      return {
+        id: cb.value,
+        name: cb.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-') || ''
+      };
+    });
     
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const [type, ...valueParts] = segment.split('-');
-      const value = valueParts.join('-'); // Rejoin in case value contains hyphens
-      
-      if (!value) continue;
-      
-      switch (type) {
-        case 'era':
-          if (!filters.eras.includes(value)) {
-            filters.eras.push(value);
-          }
-          break;
-        case 'continent':
-          if (!filters.continents.includes(decodeURIComponent(value))) {
-            filters.continents.push(decodeURIComponent(value));
-          }
-          break;
-        case 'belief':
-          if (!filters.beliefs.includes(decodeURIComponent(value))) {
-            filters.beliefs.push(decodeURIComponent(value));
-          }
-          break;
-        case 'status':
-          if (!filters.statuses.includes(value)) {
-            filters.statuses.push(value);
-          }
-          break;
+    // Get all belief checkboxes
+    const beliefCheckboxes = Array.from(document.querySelectorAll('input[name="beliefs-filter"]'));
+    const beliefLabels = beliefCheckboxes.map(cb => {
+      return {
+        value: cb.dataset.belief,
+        slug: cb.dataset.belief?.toLowerCase().replace(/\s+/g, '-') || ''
+      };
+    });
+    
+    // Get all continent checkboxes
+    const continentCheckboxes = Array.from(document.querySelectorAll('input[name="continent-filter"]'));
+    const continentLabels = continentCheckboxes.map(cb => {
+      return {
+        value: cb.value,
+        slug: cb.value.toLowerCase().replace(/\s+/g, '-')
+      };
+    });
+    
+    // Get all status checkboxes
+    const statusCheckboxes = Array.from(document.querySelectorAll('input[name="status-filter"]'));
+    const statusLabels = statusCheckboxes.map(cb => {
+      return {
+        value: cb.value,
+        slug: cb.value.toLowerCase()
+      };
+    });
+    
+    // Split the filter string by hyphens
+    const parts = filterPart.split('-');
+    
+    // For each part, check if it matches any of our known values
+    parts.forEach(part => {
+      // Check eras
+      const matchingEra = eraLabels.find(era => era.name.includes(part) || part.includes(era.name));
+      if (matchingEra && !filters.eras.includes(matchingEra.id)) {
+        filters.eras.push(matchingEra.id);
+        return;
       }
-    }
+      
+      // Check beliefs
+      const matchingBelief = beliefLabels.find(belief => belief.slug.includes(part) || part.includes(belief.slug));
+      if (matchingBelief && !filters.beliefs.includes(matchingBelief.value)) {
+        filters.beliefs.push(matchingBelief.value);
+        return;
+      }
+      
+      // Check continents
+      const matchingContinent = continentLabels.find(continent => continent.slug.includes(part) || part.includes(continent.slug));
+      if (matchingContinent && !filters.continents.includes(matchingContinent.value)) {
+        filters.continents.push(matchingContinent.value);
+        return;
+      }
+      
+      // Check statuses
+      const matchingStatus = statusLabels.find(status => status.slug.includes(part) || part.includes(status.slug));
+      if (matchingStatus && !filters.statuses.includes(matchingStatus.value)) {
+        filters.statuses.push(matchingStatus.value);
+        return;
+      }
+    });
     
     return filters;
   }
@@ -256,30 +292,28 @@ const { currentView = 'horizontal' } = Astro.props;
       return basePath;
     }
     
-    // Build SEO-friendly path segments
-    const segments = [];
+    // Get era names instead of IDs for better SEO
+    const eraNames = [];
+    if (filters.eras.length > 0) {
+      // Find era names from checkboxes
+      document.querySelectorAll('input[name="era-filter"]:checked').forEach(checkbox => {
+        const eraName = checkbox.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-');
+        if (eraName) eraNames.push(eraName);
+      });
+    }
     
-    // Add era filters
-    filters.eras.forEach(v => {
-      segments.push(`era-${v}`);
-    });
+    // Build SEO-friendly filter string
+    const filterParts = [
+      ...eraNames,
+      ...filters.beliefs.map(b => b.toLowerCase().replace(/\s+/g, '-')),
+      ...filters.continents.map(c => c.toLowerCase().replace(/\s+/g, '-')),
+      ...filters.statuses.map(s => s.toLowerCase())
+    ];
     
-    // Add continent filters
-    filters.continents.forEach(v => {
-      segments.push(`continent-${encodeURIComponent(v)}`);
-    });
+    // Join with hyphens for a clean URL
+    const filterString = filterParts.join('-');
     
-    // Add belief filters
-    filters.beliefs.forEach(v => {
-      segments.push(`belief-${encodeURIComponent(v)}`);
-    });
-    
-    // Add status filters
-    filters.statuses.forEach(v => {
-      segments.push(`status-${v}`);
-    });
-    
-    return `${basePath}/filter/${segments.join('/')}`;
+    return `${basePath}/filter/${filterString}`;
   }
 
   // Filtering functionality

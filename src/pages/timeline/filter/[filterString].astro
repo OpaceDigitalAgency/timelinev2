@@ -7,18 +7,68 @@ import HorizontalTimeline from '../../../components/HorizontalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-export function getStaticPaths() {
-  return [
-    { params: { params: undefined } },
-    // We'll generate the rest dynamically
-  ];
+export async function getStaticPaths() {
+  // Fetch eras for basic path generation
+  const eras = await fetchEras();
+  const religions = await fetchReligions();
+  
+  // Get all unique values for filters
+  const eraNames = [...new Set(eras.map(era => era.name.toLowerCase().replace(/\s+/g, '-')))];
+  const beliefSystems = [...new Set(religions.flatMap(r => r.beliefs || []).map(b => b.toLowerCase().replace(/\s+/g, '-')))];
+  const continents = [...new Set(religions.map(r => r.continent?.toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
+  const statuses = [...new Set(religions.map(r => r.status?.toLowerCase()).filter(Boolean))];
+  
+  // Generate paths for common filter combinations
+  const paths = [];
+  
+  // Add paths for each era
+  eraNames.forEach(era => {
+    paths.push({ params: { filterString: era } });
+  });
+  
+  // Add paths for each belief system
+  beliefSystems.forEach(belief => {
+    paths.push({ params: { filterString: belief } });
+  });
+  
+  // Add paths for each continent
+  continents.forEach(continent => {
+    paths.push({ params: { filterString: continent } });
+  });
+  
+  // Add paths for each status
+  statuses.forEach(status => {
+    paths.push({ params: { filterString: status } });
+  });
+  
+  // Add some common combinations
+  if (eraNames.includes('prehistoric') && beliefSystems.includes('animism')) {
+    paths.push({ params: { filterString: 'prehistoric-animism' } });
+  }
+  
+  if (eraNames.includes('classical') && beliefSystems.includes('polytheism')) {
+    paths.push({ params: { filterString: 'classical-polytheism' } });
+  }
+  
+  if (beliefSystems.includes('monotheism') && continents.includes('asia')) {
+    paths.push({ params: { filterString: 'monotheism-asia' } });
+  }
+  
+  return paths;
 }
 
-// Get the filter parameters from the URL
-const { params } = Astro.params;
+// Get the filter string from the URL
+const { filterString } = Astro.params;
 
-// Parse the filter parameters
-function parseFilterParams(paramsString) {
+// Get all data
+const allReligions = await fetchReligions();
+const allEras = await fetchEras();
+const totalCount = await countReligions();
+
+// Parse the filter string into filter categories
+function parseFilterString(str) {
+  if (!str) return { eras: [], continents: [], beliefs: [], statuses: [] };
+  
   const filterObj = {
     eras: [],
     continents: [],
@@ -26,42 +76,59 @@ function parseFilterParams(paramsString) {
     statuses: [],
   };
   
-  if (!paramsString) return filterObj;
+  // Convert era names to IDs
+  const eraMap = new Map(allEras.map(era => [
+    era.name.toLowerCase().replace(/\s+/g, '-'), 
+    era.id
+  ]));
   
-  // Split by slash and process segments
-  const segments = paramsString.split('/').filter(Boolean);
+  // Get all possible values
+  const allBeliefs = [...new Set(allReligions.flatMap(r => r.beliefs || []).map(b => b.toLowerCase().replace(/\s+/g, '-')))];
+  const allContinents = [...new Set(allReligions.map(r => r.continent?.toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
+  const allStatuses = [...new Set(allReligions.map(r => r.status?.toLowerCase()).filter(Boolean))];
   
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    const [type, value] = segment.split('-');
-    
-    if (!value) continue;
-    
-    switch (type) {
-      case 'era':
-        filterObj.eras.push(value);
-        break;
-      case 'continent':
-        filterObj.continents.push(decodeURIComponent(value));
-        break;
-      case 'belief':
-        filterObj.beliefs.push(decodeURIComponent(value));
-        break;
-      case 'status':
-        filterObj.statuses.push(value);
-        break;
+  // Split the filter string by hyphens
+  const parts = str.split('-');
+  
+  // Check each part against possible values
+  parts.forEach(part => {
+    // Check if it's an era
+    for (const [eraName, eraId] of eraMap.entries()) {
+      if (eraName.includes(part) || part.includes(eraName)) {
+        filterObj.eras.push(eraId);
+        return;
+      }
     }
-  }
+    
+    // Check if it's a belief
+    for (const belief of allBeliefs) {
+      if (belief.includes(part) || part.includes(belief)) {
+        filterObj.beliefs.push(belief);
+        return;
+      }
+    }
+    
+    // Check if it's a continent
+    for (const continent of allContinents) {
+      if (continent.includes(part) || part.includes(continent)) {
+        filterObj.continents.push(continent);
+        return;
+      }
+    }
+    
+    // Check if it's a status
+    for (const status of allStatuses) {
+      if (status.includes(part) || part.includes(status)) {
+        filterObj.statuses.push(status);
+        return;
+      }
+    }
+  });
   
   return filterObj;
 }
 
-const activeFilters = parseFilterParams(params);
-
-// Get religions and eras data
-const allReligions = await fetchReligions();
-const eras = await fetchEras();
-const totalCount = await countReligions();
+const activeFilters = parseFilterString(filterString);
 
 // Filter religions based on activeFilters
 function religionMatchesFilters(religion, filters) {
@@ -72,17 +139,20 @@ function religionMatchesFilters(religion, filters) {
   }
   
   if (filters.continents.length > 0) {
-    const match = filters.continents.some(c =>
-      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
-      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
-    );
+    const match = filters.continents.some(c => {
+      const religionContinent = religion.continent?.toLowerCase().replace(/\s+/g, '-');
+      return religionContinent?.includes(c) || c.includes(religionContinent);
+    });
     if (!match) return false;
   }
   
   if (filters.beliefs.length > 0) {
-    const match = filters.beliefs.some(b =>
-      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
-    );
+    const match = filters.beliefs.some(b => {
+      return religion.beliefs?.some(belief => {
+        const beliefSlug = belief.toLowerCase().replace(/\s+/g, '-');
+        return beliefSlug.includes(b) || b.includes(beliefSlug);
+      });
+    });
     if (!match) return false;
   }
   
@@ -97,17 +167,17 @@ function religionMatchesFilters(religion, filters) {
 const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
 
 // SEO meta/canonical
-function filtersToTitle(filters) {
-  let parts = [];
-  if (filters.eras.length) parts.push('Era: ' + filters.eras.join(', '));
-  if (filters.continents.length) parts.push('Continent: ' + filters.continents.join(', '));
-  if (filters.beliefs.length) parts.push('Belief: ' + filters.beliefs.join(', '));
-  if (filters.statuses.length) parts.push('Status: ' + filters.statuses.join(', '));
-  return parts.length ? parts.join(' | ') : 'Timeline';
+function filtersToTitle(filterString) {
+  if (!filterString) return 'Timeline';
+  
+  // Convert hyphens to spaces and capitalize each word
+  return filterString.split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ') + ' - Religious Timeline';
 }
 
-const pageTitle = filtersToTitle(activeFilters) + ' - Religious Timeline';
-const canonicalUrl = new URL(params ? `/timeline/filter/${params}` : '/timeline', Astro.site || 'https://evolution-of-religion.netlify.app').href;
+const pageTitle = filtersToTitle(filterString);
+const canonicalUrl = new URL(`/timeline/filter/${filterString || ''}`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
 ---
 
 <Layout title={pageTitle}>
@@ -157,7 +227,7 @@ const canonicalUrl = new URL(params ? `/timeline/filter/${params}` : '/timeline'
         <!-- Horizontal Timeline View -->
         <div id="timeline-container" class="mt-4">
           <div id="horizontal-view">
-            <HorizontalTimeline client:only="react" religions={religions} eras={eras} />
+            <HorizontalTimeline client:only="react" religions={religions} eras={allEras} />
             <div class="sr-only">
               <h2>Timeline of Religious Traditions</h2>
               <ul>

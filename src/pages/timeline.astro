@@ -10,27 +10,25 @@ import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 // Check for query parameters and redirect to filter page if present
 const url = new URL(Astro.request.url);
 if (url.searchParams.toString()) {
-  const segments = [];
+  // Get all filter values
+  const eraParams = url.searchParams.getAll('era');
+  const continentParams = url.searchParams.getAll('continent');
+  const beliefParams = url.searchParams.getAll('belief');
+  const statusParams = url.searchParams.getAll('status');
   
-  // Convert query parameters to path segments
-  url.searchParams.getAll('era').forEach(v => {
-    segments.push(`era-${v}`);
-  });
+  // Build SEO-friendly filter string
+  const filterParts = [
+    ...eraParams,
+    ...continentParams.map(c => c.toLowerCase().replace(/\s+/g, '-')),
+    ...beliefParams.map(b => b.toLowerCase().replace(/\s+/g, '-')),
+    ...statusParams.map(s => s.toLowerCase())
+  ];
   
-  url.searchParams.getAll('continent').forEach(v => {
-    segments.push(`continent-${encodeURIComponent(v)}`);
-  });
+  // Join with hyphens for a clean URL
+  const filterString = filterParts.join('-');
   
-  url.searchParams.getAll('belief').forEach(v => {
-    segments.push(`belief-${encodeURIComponent(v)}`);
-  });
-  
-  url.searchParams.getAll('status').forEach(v => {
-    segments.push(`status-${v}`);
-  });
-  
-  if (segments.length > 0) {
-    return Astro.redirect(`/timeline/filter/${segments.join('/')}`);
+  if (filterString) {
+    return Astro.redirect(`/timeline/filter/${filterString}`);
   }
 }
 
