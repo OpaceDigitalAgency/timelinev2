@@ -140,11 +140,11 @@ const { currentView = 'horizontal' } = Astro.props;
     'beliefs-filter': 'beliefs-dropdown',
     'status-filter': 'status-dropdown'
   };
-  
+
   Object.entries(dropdownToggles).forEach(([toggleId, dropdownId]) => {
     const toggle = document.getElementById(toggleId);
     const dropdown = document.getElementById(dropdownId);
-    
+
     if (toggle && dropdown) {
       toggle.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -152,7 +152,7 @@ const { currentView = 'horizontal' } = Astro.props;
       });
     }
   });
-  
+
   // Close dropdowns when clicking outside
   document.addEventListener('click', () => {
     Object.values(dropdownToggles).forEach(dropdownId => {
@@ -162,16 +162,81 @@ const { currentView = 'horizontal' } = Astro.props;
       }
     });
   });
-  
+
+  // --- SEO URL FILTER LOGIC ---
+
+  // Parse filters from current URL path
+  function getFiltersFromPath() {
+    const path = window.location.pathname;
+    // Match /timeline or /timeline/...
+    const match = path.match(/^\/timeline(?:\/(.*))?$/);
+    if (!match || !match[1]) return { eras: [], continents: [], beliefs: [], statuses: [] };
+    const segments = match[1].split('/').filter(Boolean);
+    const filters = { eras: [], continents: [], beliefs: [], statuses: [] };
+    for (let i = 0; i < segments.length; i += 2) {
+      const key = segments[i];
+      const value = segments[i + 1];
+      if (!value) break;
+      switch (key) {
+        case 'era':
+          filters.eras.push(value);
+          break;
+        case 'continent':
+          filters.continents.push(value);
+          break;
+        case 'belief':
+          filters.beliefs.push(value);
+          break;
+        case 'status':
+          filters.statuses.push(value);
+          break;
+      }
+    }
+    return filters;
+  }
+
+  // Set checkboxes based on filters from URL
+  function setCheckboxesFromFilters(filters) {
+    document.querySelectorAll('input[name="era-filter"]').forEach(cb => {
+      cb.checked = filters.eras.includes(cb.value);
+    });
+    document.querySelectorAll('input[name="continent-filter"]').forEach(cb => {
+      cb.checked = filters.continents.includes(cb.value);
+    });
+    document.querySelectorAll('input[name="beliefs-filter"]').forEach(cb => {
+      cb.checked = filters.beliefs.includes(cb.value);
+    });
+    document.querySelectorAll('input[name="status-filter"]').forEach(cb => {
+      cb.checked = filters.statuses.includes(cb.value);
+    });
+  }
+
+  // Build SEO-friendly path from filters
+  function buildPathFromFilters(filters) {
+    let path = '/timeline';
+    if (
+      filters.eras.length ||
+      filters.continents.length ||
+      filters.beliefs.length ||
+      filters.statuses.length
+    ) {
+      const segments = [];
+      filters.eras.forEach(v => { segments.push('era', v); });
+      filters.continents.forEach(v => { segments.push('continent', v); });
+      filters.beliefs.forEach(v => { segments.push('belief', v); });
+      filters.statuses.forEach(v => { segments.push('status', v); });
+      path += '/' + segments.join('/');
+    }
+    return path;
+  }
 
   // Filtering functionality
-  let activeFilters = {
-    eras: [],
-    continents: [],
-    beliefs: [],
-    statuses: [],
-    searchTerm: ''
-  };
+  let activeFilters = getFiltersFromPath();
+
+  // On load, set checkboxes from URL
+  window.addEventListener('DOMContentLoaded', () => {
+    setCheckboxesFromFilters(activeFilters);
+  });
 
   // Setup filter change handlers
   document.querySelectorAll('input[name="era-filter"]').forEach(checkbox => {
@@ -193,8 +258,9 @@ const { currentView = 'horizontal' } = Astro.props;
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
+      // Search is client-only, not in URL
       activeFilters.searchTerm = e.target.value;
-      applyFilters();
+      // Optionally: trigger client-side filtering event here
     });
   }
 
@@ -202,45 +268,49 @@ const { currentView = 'horizontal' } = Astro.props;
   if (clearFiltersBtn) {
     clearFiltersBtn.addEventListener('click', clearAllFilters);
   }
-  
+
   // Listen for clear-all-filters event (from timeline components)
   document.addEventListener('clear-all-filters', clearAllFilters);
 
   function handleFilterChange(e) {
     const { checked, value, name } = e.target;
-    
-    switch(name) {
+
+    switch (name) {
       case 'era-filter':
         if (checked) {
-          activeFilters.eras.push(value);
+          if (!activeFilters.eras.includes(value)) activeFilters.eras.push(value);
         } else {
           activeFilters.eras = activeFilters.eras.filter(id => id !== value);
         }
         break;
       case 'continent-filter':
         if (checked) {
-          activeFilters.continents.push(value);
+          if (!activeFilters.continents.includes(value)) activeFilters.continents.push(value);
         } else {
           activeFilters.continents = activeFilters.continents.filter(c => c !== value);
         }
         break;
       case 'beliefs-filter':
         if (checked) {
-          activeFilters.beliefs.push(e.target.dataset.belief);
+          if (!activeFilters.beliefs.includes(e.target.dataset.belief)) activeFilters.beliefs.push(e.target.dataset.belief);
         } else {
           activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== e.target.dataset.belief);
         }
         break;
       case 'status-filter':
         if (checked) {
-          activeFilters.statuses.push(value);
+          if (!activeFilters.statuses.includes(value)) activeFilters.statuses.push(value);
         } else {
           activeFilters.statuses = activeFilters.statuses.filter(s => s !== value);
         }
         break;
     }
-    
-    applyFilters();
+
+    // Update URL to reflect new filters
+    const newPath = buildPathFromFilters(activeFilters);
+    if (window.location.pathname !== newPath) {
+      window.location.href = newPath;
+    }
   }
 
   function clearAllFilters() {
@@ -263,15 +333,10 @@ const { currentView = 'horizontal' } = Astro.props;
       searchTerm: ''
     };
 
-    // Apply the cleared filters
-    applyFilters();
-  }
-
-  function applyFilters() {
-    // Dispatch event with current filters
-    document.dispatchEvent(new CustomEvent('timeline-filters-changed', { 
-      detail: activeFilters
-    }));
+    // Update URL to base timeline
+    if (window.location.pathname !== '/timeline') {
+      window.location.href = '/timeline';
+    }
   }
 </script>
 

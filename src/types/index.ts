@@ -6,16 +6,21 @@ export type Era = {
   description: string;
 };
 
-export type Continent = 
+export type Continent =
   | 'Africa'
   | 'Asia'
   | 'Europe'
   | 'North America'
   | 'South America'
   | 'Australia'
-  | 'Antarctica';
+  | 'Antarctica'
+  | 'Australia/Oceania'
+  | 'Middle East (West Asia)'
+  | 'East Asia'
+  | 'South Asia'
+  | 'Global';
 
-export type BeliefSystem = 
+export type BeliefSystem =
   | 'Monotheism'
   | 'Polytheism'
   | 'Nontheism'
@@ -23,7 +28,10 @@ export type BeliefSystem =
   | 'Panentheism'
   | 'Deism'
   | 'Atheism'
-  | 'Agnosticism';
+  | 'Agnosticism'
+  | 'Dualism'
+  | 'Animism'
+  | 'Philosophical';
 
 export type ReligionStatus = 'active' | 'extinct' | 'evolved';
 
