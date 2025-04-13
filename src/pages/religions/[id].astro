@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
-import { fetchReligionById, fetchReligions, fetchEras } from '../../lib/services/religionService';
+import { fetchReligionBySlug, fetchReligions, fetchEras } from '../../lib/services/religionService';
 import { Clock, Book, Users, MapPin, Edit, Share2, ArrowLeft, Heart, Brain, Compass, Sparkles } from 'lucide-react';
 import { createSlug } from '../../lib/utils';
 
@@ -12,13 +12,13 @@ export async function getStaticPaths() {
     const slug = createSlug(religion.name);
     return {
       params: { id: slug },
-      props: { religionId: religion.id, slug },
+      props: { slug },
     };
   });
 }
 
-const { religionId, slug } = Astro.props;
-const religion = await fetchReligionById(religionId);
+const { slug } = Astro.props;
+const religion = await fetchReligionBySlug(slug);
 
 if (!religion) {
   return Astro.redirect('/404');
