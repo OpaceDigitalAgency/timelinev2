@@ -14,7 +14,12 @@ export default defineConfig({
   vite: {
     build: {
       rollupOptions: {
-        external: ['/src/components/EditableSection', '/src/components/EditableSection.tsx']
+        external: [
+          'src/components/EditableSection',
+          'src/components/EditableSection.tsx',
+          './src/components/EditableSection',
+          './src/components/EditableSection.tsx'
+        ]
       }
     }
   },
