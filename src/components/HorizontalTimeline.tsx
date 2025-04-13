@@ -109,9 +109,13 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
     svg.selectAll("*").remove();
 
     // Sort religions by founding year for more consistent visualization
-    const sortedReligions = [...filteredReligions].sort((a, b) => a.foundingYear - b.foundingYear);
+    // Filter out religions with missing foundingYear (required for timeline placement)
+    const sortedReligions = [...filteredReligions]
+      .filter(r => typeof r.foundingYear === 'number' && !isNaN(r.foundingYear))
+      .sort((a, b) => a.foundingYear - b.foundingYear);
 
     // Find min and max years for scale with padding to prevent edge crowding
+    // Support negative foundingYear (BCE) for prehistoric religions
     let minYear = Math.min(...sortedReligions.map(r => r.foundingYear), ...eras.map(e => e.startYear));
     let maxYear = Math.max(
       ...sortedReligions.map(r => r.foundingYear),
