@@ -536,7 +536,6 @@ const isMultiFilter =
     // Count total filters
     const totalFilters = activeFilters.eras.length + activeFilters.continents.length +
                         activeFilters.beliefs.length + activeFilters.statuses.length;
-    
     // For multi-filters, use history.pushState to avoid page reload
     if (totalFilters > 1) {
       // Update URL without causing a page reload
@@ -549,6 +548,7 @@ const isMultiFilter =
     } else {
       // For single filters or no filters, navigate to the SEO-friendly URL
       window.location.href = newPath;
+    }
     }
   }
 
