@@ -111,7 +111,7 @@ export async function fetchReligions(): Promise<Religion[]> {
       parentReligions: parentMap[religion.id] || [],
       childReligions: childMap[religion.id] || [],
       imageUrl: religion.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
-      era: religion.era?.id || ''
+      era: religion.era_id || '' // Use era_id directly for consistency
     };
   });
 
@@ -226,7 +226,7 @@ export async function fetchReligionBySlug(slug: string): Promise<Religion | null
     parentReligions: parentData.map(p => p.parent_id),
     childReligions: childData.map(c => c.child_id),
     imageUrl: religionData.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
-    era: religionData.era?.id || ''
+    era: religionData.era_id || '' // Use era_id directly for consistency
   };
 }
 
@@ -298,7 +298,7 @@ export async function fetchReligionById(id: string): Promise<Religion | null> {
     parentReligions: parentData.map(p => p.parent_id),
     childReligions: childData.map(c => c.child_id),
     imageUrl: data.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
-    era: data.era?.id || ''
+    era: data.era_id || '' // Use era_id directly for consistency
   };
 }
 
@@ -326,7 +326,7 @@ export async function searchReligions(term: string): Promise<Religion[]> {
     approxFollowers: religion.approx_followers || undefined,
     practices: [],
     imageUrl: religion.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
-    era: religion.era_id || ''
+    era: religion.era_id || '' // This should match the era field in the other functions
   }));
 }
 
