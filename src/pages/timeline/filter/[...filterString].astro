@@ -149,8 +149,8 @@ const pageTitle = filtersToTitle(filterString);
 const canonicalUrl = new URL(`/timeline/filter/${Array.isArray(filterString) ? filterString.join('/') : filterString || ''}`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
 ---
 
-<Layout title={pageTitle}>
-  <head>
+<Layout title={pageTitle} noindex={true}>
+  <head slot="head">
     <link rel="canonical" href={canonicalUrl} />
     <meta name="description" content={pageTitle} />
     <meta property="og:title" content={pageTitle} />

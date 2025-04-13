@@ -1,6 +1,6 @@
 ---
 import { FilterIcon, X } from 'lucide-react';
-import { fetchEras } from '../lib/services/religionService';
+import { fetchEras, fetchReligions } from '../lib/services/religionService';
 
 // Fetch eras for filtering
 const eras = await fetchEras();
@@ -10,10 +10,30 @@ const allStatuses = ['active', 'extinct', 'evolved'];
 
 interface Props {
   currentView?: 'horizontal' | 'vertical';
+  initialFilters?: {
+    eras: string[];
+    continents: string[];
+    beliefs: string[];
+    statuses: string[];
+  };
 }
 
-const { currentView = 'horizontal' } = Astro.props;
+const {
+  currentView = 'horizontal',
+  initialFilters = { eras: [], continents: [], beliefs: [], statuses: [] }
+} = Astro.props;
+
+// Determine if this is a multi-filter view
+const isMultiFilter =
+  (initialFilters.eras.length + initialFilters.continents.length +
+   initialFilters.beliefs.length + initialFilters.statuses.length) > 1;
 ---
+
+{isMultiFilter && (
+  <head slot="head">
+    <meta name="robots" content="noindex, follow" />
+  </head>
+)}
 
 <div class="bg-white shadow-sm sticky top-16 z-40">
   <div class="container mx-auto px-4 py-2">
@@ -113,6 +133,11 @@ const { currentView = 'horizontal' } = Astro.props;
           <X className="h-3 w-3" />
           <span>Clear All</span>
         </button>
+      </div>
+      
+      <!-- Active filter pills container -->
+      <div class="filter-pills-container flex flex-wrap gap-1 mt-2 mb-1">
+        <!-- Pills will be added here dynamically -->
       </div>
       
       <div class="flex items-center space-x-2 ml-auto">
@@ -277,7 +302,7 @@ const { currentView = 'horizontal' } = Astro.props;
     });
   }
 
-  // Build SEO-friendly path from filters
+  // Build path for filters - SEO-friendly for single filters, client-side for multi-filters
   function buildPathFromFilters(filters) {
     // Determine base path based on current view
     const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
@@ -292,36 +317,75 @@ const { currentView = 'horizontal' } = Astro.props;
       return basePath;
     }
     
-    // Get era names instead of IDs for better SEO
-    const eraNames = [];
-    if (filters.eras.length > 0) {
-      // Find era names from checkboxes
-      document.querySelectorAll('input[name="era-filter"]:checked').forEach(checkbox => {
-        const eraName = checkbox.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-');
-        if (eraName) eraNames.push(eraName);
-      });
+    // Count total filters
+    const totalFilters = filters.eras.length + filters.continents.length +
+                         filters.beliefs.length + filters.statuses.length;
+    
+    // For single filters, use SEO-friendly URLs
+    if (totalFilters === 1) {
+      // Era filter
+      if (filters.eras.length === 1) {
+        const eraName = document.querySelector(`input[name="era-filter"][value="${filters.eras[0]}"]`)
+          ?.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-');
+        if (eraName) return `/era/${eraName}/`;
+      }
+      
+      // Continent/origin filter
+      if (filters.continents.length === 1) {
+        const continent = filters.continents[0].toLowerCase().replace(/\s+/g, '-');
+        return `/origin/${continent}/`;
+      }
+      
+      // Belief filter
+      if (filters.beliefs.length === 1) {
+        const belief = filters.beliefs[0].toLowerCase().replace(/\s+/g, '-');
+        return `/beliefs/${belief}/`;
+      }
+      
+      // Status filter
+      if (filters.statuses.length === 1) {
+        const status = filters.statuses[0].toLowerCase();
+        return `/status/${status}/`;
+      }
     }
     
-    // Build SEO-friendly filter string
-    const filterParts = [
-      ...eraNames,
-      ...filters.beliefs.map(b => b.toLowerCase().replace(/\s+/g, '-')),
-      ...filters.continents.map(c => c.toLowerCase().replace(/\s+/g, '-')),
-      ...filters.statuses.map(s => s.toLowerCase())
-    ];
+    // For multi-filters, use query parameters (these won't actually navigate, we'll use pushState)
+    const params = new URLSearchParams();
     
-    // Join with hyphens for a clean URL
-    const filterString = filterParts.join('-');
+    // Add era filters
+    filters.eras.forEach(eraId => {
+      const eraName = document.querySelector(`input[name="era-filter"][value="${eraId}"]`)
+        ?.nextElementSibling?.textContent?.trim();
+      if (eraName) params.append('era', eraName);
+    });
     
-    return `${basePath}/filter/${filterString}`;
+    // Add belief filters
+    filters.beliefs.forEach(b => params.append('belief', b));
+    
+    // Add continent filters
+    filters.continents.forEach(c => params.append('continent', c));
+    
+    // Add status filters
+    filters.statuses.forEach(s => params.append('status', s));
+    
+    return `${basePath}?${params.toString()}`;
   }
 
   // Filtering functionality
   let activeFilters = getFiltersFromPath();
 
-  // On load, set checkboxes from URL
+  // On load, set checkboxes from URL and initialize window.initialFilters
   window.addEventListener('DOMContentLoaded', () => {
+    // Set initial filters from props or URL
+    activeFilters = initialFilters && Object.values(initialFilters).some(arr => arr.length > 0)
+      ? { ...initialFilters, searchTerm: '' }
+      : getFiltersFromPath();
+    
+    // Set checkboxes based on active filters
     setCheckboxesFromFilters(activeFilters);
+    
+    // Make filters available globally for client-side filtering
+    window.initialFilters = activeFilters;
   });
 
   // Setup filter change handlers
@@ -357,6 +421,123 @@ const { currentView = 'horizontal' } = Astro.props;
 
   // Listen for clear-all-filters event (from timeline components)
   document.addEventListener('clear-all-filters', clearAllFilters);
+  
+  // Handle popstate events (browser back/forward buttons)
+  window.addEventListener('popstate', (event) => {
+    if (event.state && event.state.filters) {
+      // Restore filters from history state
+      activeFilters = event.state.filters;
+      
+      // Update checkboxes to match filters
+      setCheckboxesFromFilters(activeFilters);
+      
+      // Apply client-side filtering
+      applyClientSideFiltering(activeFilters);
+    } else {
+      // If no state, reset filters
+      clearAllFilters();
+    }
+  });
+  
+  // Apply client-side filtering without page reload
+  function applyClientSideFiltering(filters) {
+    // Get all religions from the page
+    const timelineContainer = document.getElementById('horizontal-view') ||
+                             document.getElementById('vertical-view');
+    
+    if (!timelineContainer) return;
+    
+    // Dispatch a custom event that the React components can listen for
+    timelineContainer.dispatchEvent(new CustomEvent('apply-filters', {
+      detail: { filters },
+      bubbles: true
+    }));
+    
+    // Update filter pills to show active filters
+    updateFilterPills(filters);
+  }
+  
+  // Update filter pills to show active filters
+  function updateFilterPills(filters) {
+    // Clear existing active pills
+    document.querySelectorAll('.active-filter-pill').forEach(pill => pill.remove());
+    
+    const pillsContainer = document.querySelector('.filter-pills-container');
+    if (!pillsContainer) return;
+    
+    // Add era pills
+    filters.eras.forEach(eraId => {
+      const eraName = document.querySelector(`input[name="era-filter"][value="${eraId}"]`)
+        ?.nextElementSibling?.textContent?.trim();
+      if (eraName) addFilterPill(pillsContainer, 'era', eraName, eraId);
+    });
+    
+    // Add continent pills
+    filters.continents.forEach(continent => {
+      addFilterPill(pillsContainer, 'continent', continent, continent);
+    });
+    
+    // Add belief pills
+    filters.beliefs.forEach(belief => {
+      addFilterPill(pillsContainer, 'belief', belief, belief);
+    });
+    
+    // Add status pills
+    filters.statuses.forEach(status => {
+      addFilterPill(pillsContainer, 'status', status, status);
+    });
+  }
+  
+  // Add a filter pill to show an active filter
+  function addFilterPill(container, type, label, value) {
+    const pill = document.createElement('span');
+    pill.className = 'active-filter-pill inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 mr-2 mb-2';
+    pill.innerHTML = `
+      ${label}
+      <button type="button" class="ml-1 inline-flex items-center p-0.5 text-blue-400 hover:bg-blue-200 hover:text-blue-900 rounded-full">
+        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+        </svg>
+      </button>
+    `;
+    
+    // Add click handler to remove filter
+    pill.querySelector('button').addEventListener('click', () => {
+      // Remove the filter
+      switch(type) {
+        case 'era':
+          activeFilters.eras = activeFilters.eras.filter(id => id !== value);
+          document.querySelector(`input[name="era-filter"][value="${value}"]`).checked = false;
+          break;
+        case 'continent':
+          activeFilters.continents = activeFilters.continents.filter(c => c !== value);
+          document.querySelector(`input[name="continent-filter"][value="${value}"]`).checked = false;
+          break;
+        case 'belief':
+          activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== value);
+          document.querySelector(`input[name="beliefs-filter"][data-belief="${value}"]`).checked = false;
+          break;
+        case 'status':
+          activeFilters.statuses = activeFilters.statuses.filter(s => s !== value);
+          document.querySelector(`input[name="status-filter"][value="${value}"]`).checked = false;
+          break;
+      }
+      
+      // Update URL and apply filters
+      const newPath = buildPathFromFilters(activeFilters);
+      const totalFilters = activeFilters.eras.length + activeFilters.continents.length +
+                          activeFilters.beliefs.length + activeFilters.statuses.length;
+      
+      if (totalFilters <= 1) {
+        window.location.href = newPath;
+      } else {
+        history.pushState({ filters: activeFilters }, '', newPath);
+        applyClientSideFiltering(activeFilters);
+      }
+    });
+    
+    container.appendChild(pill);
+  }
 
   function handleFilterChange(e) {
     const { checked, value, name } = e.target;
@@ -394,8 +575,30 @@ const { currentView = 'horizontal' } = Astro.props;
 
     // Update URL to reflect new filters
     const newPath = buildPathFromFilters(activeFilters);
-    if (window.location.pathname !== newPath) {
-      window.location.href = newPath;
+    
+    // Count total filters
+    const totalFilters = activeFilters.eras.length + activeFilters.continents.length +
+                         activeFilters.beliefs.length + activeFilters.statuses.length;
+    
+    // For single filters, navigate to SEO-friendly URL
+    if (totalFilters <= 1) {
+      if (window.location.pathname !== newPath) {
+        window.location.href = newPath;
+      }
+    } else {
+      // For multi-filters, use history.pushState to avoid page reload
+      const url = new URL(window.location.origin + newPath);
+      
+      // Update the URL without reloading the page
+      history.pushState({ filters: activeFilters }, '', url);
+      
+      // Dispatch a custom event to notify components about filter changes
+      document.dispatchEvent(new CustomEvent('filters-changed', {
+        detail: { filters: activeFilters }
+      }));
+      
+      // Apply client-side filtering
+      applyClientSideFiltering(activeFilters);
     }
   }
 
@@ -423,8 +626,25 @@ const { currentView = 'horizontal' } = Astro.props;
     const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
     
     // Check if we're on a filter page or have query parameters
-    if (window.location.pathname.includes('/filter/') || window.location.search !== '') {
-      window.location.href = basePath;
+    if (window.location.pathname.includes('/filter/') ||
+        window.location.pathname.match(/\/(era|origin|beliefs|status)\//) ||
+        window.location.search !== '') {
+      
+      // Use history.pushState to avoid page reload if we're on the main timeline pages
+      if (window.location.pathname.includes('/timeline') || window.location.pathname.includes('/vertical-timeline')) {
+        history.pushState({ filters: activeFilters }, '', basePath);
+        
+        // Apply client-side filtering
+        applyClientSideFiltering(activeFilters);
+        
+        // Dispatch a custom event to notify components about filter changes
+        document.dispatchEvent(new CustomEvent('filters-changed', {
+          detail: { filters: activeFilters }
+        }));
+      } else {
+        // If we're on a different page (like a single filter page), navigate to the base timeline
+        window.location.href = basePath;
+      }
     }
   }
 </script>

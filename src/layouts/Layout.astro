@@ -6,12 +6,14 @@ interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  noindex?: boolean;
 }
 
-const { 
-  title, 
-  description = 'Interactive timeline platform mapping the evolution of religious beliefs across history', 
-  ogImage = '/images/og-image.jpg'
+const {
+  title,
+  description = 'Interactive timeline platform mapping the evolution of religious beliefs across history',
+  ogImage = '/images/og-image.jpg',
+  noindex = false
 } = Astro.props;
 ---
 
@@ -24,8 +26,11 @@ const {
     <meta name="description" content={description} />
     <meta name="author" content="Religious Timeline Project" />
     <meta name="keywords" content="religion, timeline, history, beliefs, religious evolution, faith, spirituality, world religions, comparative religion" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={noindex ? "noindex, follow" : "index, follow"} />
     <link rel="canonical" href={Astro.url.href} />
+    
+    <!-- Additional head content from child components -->
+    <slot name="head" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

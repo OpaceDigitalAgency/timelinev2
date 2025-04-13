@@ -4,6 +4,19 @@ import type { Religion, Era } from '../types';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 import { createSlug } from '../lib/utils';
 
+// Extend Window interface to include initialFilters
+declare global {
+  interface Window {
+    initialFilters?: {
+      eras: string[];
+      continents: string[];
+      beliefs: string[];
+      statuses: string[];
+      searchTerm?: string;
+    };
+  }
+}
+
 interface HorizontalTimelineProps {
   religions: Religion[];
   eras: Era[];
@@ -99,118 +112,92 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
     // Listen for filter changes
     const handleFilterChange = (event: Event) => {
       const customEvent = event as CustomEvent;
-      const filters = customEvent.detail;
+      const filters = customEvent.detail?.filters;
       
-      console.log("HorizontalTimeline - Filter change detected:", filters);
-      console.log("HorizontalTimeline - Initial religions count:", initialReligions.length);
+      if (!filters) return;
       
       let filtered = [...initialReligions];
       
       // Filter by era
       if (filters.eras && filters.eras.length > 0) {
-        console.log("HorizontalTimeline - Filtering by eras:", filters.eras);
-        const beforeCount = filtered.length;
         filtered = filtered.filter(religion => {
-          const match = filters.eras.includes(religion.era);
-          if (!match) {
-            console.log(`Religion ${religion.name} (era: ${religion.era}) doesn't match era filter`);
-          }
-          return match;
+          return filters.eras.includes(religion.era);
         });
-        console.log(`HorizontalTimeline - After era filter: ${filtered.length} (removed ${beforeCount - filtered.length})`);
       }
       
       // Filter by continent
       if (filters.continents && filters.continents.length > 0) {
-        console.log("HorizontalTimeline - Filtering by continents:", filters.continents);
-        const beforeCount = filtered.length;
         filtered = filtered.filter(religion => {
-          // Log continent data for debugging
-          console.log(`Religion ${religion.name} continent:`, religion.continent,
-                      `(type: ${typeof religion.continent})`);
-          
-          const match = filters.continents.some((continent: string) => {
-            const isMatch = religion.continent && (
+          return filters.continents.some((continent: string) => {
+            return religion.continent && (
               typeof religion.continent === 'string'
                 ? religion.continent.includes(continent)
                 : religion.continent === continent
             );
-            
-            if (isMatch) {
-              console.log(`  - Matched continent filter: "${continent}"`);
-            }
-            
-            return isMatch;
           });
-          
-          if (!match) {
-            console.log(`Religion ${religion.name} (continent: ${religion.continent}) doesn't match continent filter:`,
-                        filters.continents);
-          }
-          
-          return match;
         });
-        console.log(`HorizontalTimeline - After continent filter: ${filtered.length} (removed ${beforeCount - filtered.length})`);
       }
       
       // Filter by beliefs
       if (filters.beliefs && filters.beliefs.length > 0) {
-        console.log("HorizontalTimeline - Filtering by beliefs:", filters.beliefs);
-        const beforeCount = filtered.length;
         filtered = filtered.filter(religion => {
-          if (!religion.beliefs) {
-            console.log(`Religion ${religion.name} has no beliefs defined`);
-            return false;
-          }
-          const match = religion.beliefs.some(belief => filters.beliefs.includes(belief));
-          if (!match) {
-            console.log(`Religion ${religion.name} (beliefs: ${religion.beliefs.join(', ')}) doesn't match belief filter`);
-          }
-          return match;
+          if (!religion.beliefs) return false;
+          return religion.beliefs.some(belief => filters.beliefs.includes(belief));
         });
-        console.log(`HorizontalTimeline - After beliefs filter: ${filtered.length} (removed ${beforeCount - filtered.length})`);
       }
       
       // Filter by status
       if (filters.statuses && filters.statuses.length > 0) {
-        console.log("HorizontalTimeline - Filtering by statuses:", filters.statuses);
-        const beforeCount = filtered.length;
         filtered = filtered.filter(religion => {
-          const match = filters.statuses.includes(religion.status);
-          if (!match) {
-            console.log(`Religion ${religion.name} (status: ${religion.status}) doesn't match status filter`);
-          }
-          return match;
+          return filters.statuses.includes(religion.status);
         });
-        console.log(`HorizontalTimeline - After status filter: ${filtered.length} (removed ${beforeCount - filtered.length})`);
       }
       
       // Filter by search term
       if (filters.searchTerm) {
-        console.log("HorizontalTimeline - Filtering by search term:", filters.searchTerm);
-        const beforeCount = filtered.length;
         const searchLower = filters.searchTerm.toLowerCase();
         filtered = filtered.filter(religion => {
-          const match = religion.name.toLowerCase().includes(searchLower) ||
+          return religion.name.toLowerCase().includes(searchLower) ||
             religion.summary.toLowerCase().includes(searchLower) ||
             religion.description.toLowerCase().includes(searchLower) ||
             (religion.founderName && religion.founderName.toLowerCase().includes(searchLower));
-          if (!match) {
-            console.log(`Religion ${religion.name} doesn't match search term`);
-          }
-          return match;
         });
-        console.log(`HorizontalTimeline - After search filter: ${filtered.length} (removed ${beforeCount - filtered.length})`);
       }
       
-      console.log("HorizontalTimeline - Final filtered religions count:", filtered.length);
       setFilteredReligions(filtered);
     };
 
+    // Listen for both the old and new filter events
     document.addEventListener('timeline-filters-changed', handleFilterChange);
+    document.addEventListener('filters-changed', handleFilterChange);
+    document.addEventListener('apply-filters', handleFilterChange);
+    
+    // Set up a MutationObserver to detect when the component is mounted
+    // and apply any initial filters from the URL
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          // Check if we're in a filtered view
+          const container = document.getElementById('horizontal-view');
+          if (container) {
+            // Trigger client-side filtering with initial filters
+            const event = new CustomEvent('apply-filters', {
+              detail: { filters: window.initialFilters || {} }
+            });
+            container.dispatchEvent(event);
+            observer.disconnect();
+          }
+        }
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
     
     return () => {
       document.removeEventListener('timeline-filters-changed', handleFilterChange);
+      document.removeEventListener('filters-changed', handleFilterChange);
+      document.removeEventListener('apply-filters', handleFilterChange);
+      observer.disconnect();
     };
   }, [initialReligions]);
 
