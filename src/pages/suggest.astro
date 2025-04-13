@@ -2,11 +2,13 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { fetchReligions } from '../lib/services/religionService';
 /*
   TODO: To support editing existing religions, fetch the religion by ID from Supabase using fetchReligionById.
   For now, the form only supports suggesting new religions.
 */
 const religion = null;
+const religions = await fetchReligions();
 ---
 
 <Layout title={religion ? `Suggest Edits for ${religion.name}` : "Suggest New Religion"}>
