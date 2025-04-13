@@ -8,46 +8,18 @@ import { fetchReligions, fetchEras, countReligions } from '../../lib/services/re
 import type { BeliefSystem } from '../../types';
 
 export async function getStaticPaths() {
-  // Fetch data needed for generating paths
-  const eras = await fetchEras();
-  const religions = await fetchReligions();
-  
-  // Extract unique values for each filter type
-  const uniqueEras = [...new Set(eras.map(era => era.id))];
-  const uniqueContinents = [...new Set(religions.map(r => r.continent).filter(Boolean))];
-  const uniqueBeliefs: BeliefSystem[] = [
-    'Monotheism', 'Polytheism', 'Nontheism', 'Pantheism', 'Panentheism',
-    'Deism', 'Atheism', 'Agnosticism', 'Dualism', 'Animism', 'Philosophical'
-  ];
-  const uniqueStatuses = ['active', 'extinct', 'evolved'];
-  
-  // Generate paths for common filter combinations
-  const paths = [
+  // For static builds, just return a few basic paths
+  // This limits the number of pages generated during build
+  return [
     // Base path with no filters
     { params: { filters: [] } },
     
-    // Single era filters
-    ...uniqueEras.map(era => ({
-      params: { filters: ['era', era] }
-    })),
-    
-    // Single belief filters
-    ...uniqueBeliefs.map(belief => ({
-      params: { filters: ['belief', belief] }
-    })),
-    
-    // Single continent filters
-    ...uniqueContinents.map(continent => ({
-      params: { filters: ['continent', continent] }
-    })),
-    
-    // Single status filters
-    ...uniqueStatuses.map(status => ({
-      params: { filters: ['status', status] }
-    }))
+    // A few common filters
+    { params: { filters: ['era', 'prehistoric'] } },
+    { params: { filters: ['belief', 'monotheism'] } },
+    { params: { filters: ['continent', 'asia'] } },
+    { params: { filters: ['status', 'active'] } }
   ];
-  
-  return paths;
 }
 
 const { filters = [] } = Astro.params;
@@ -93,10 +65,41 @@ const totalCount = await countReligions();
 
 // Filter religions based on activeFilters
 function religionMatchesFilters(religion, filters) {
-  if (filters.eras.length && !filters.eras.includes(String(religion.eraId))) return false;
-  if (filters.continents.length && !filters.continents.some(c => religion.originContinent?.toLowerCase().includes(c.toLowerCase()))) return false;
-  if (filters.beliefs.length && !filters.beliefs.some(b => religion.beliefs?.map(x => x.toLowerCase()).includes(b.toLowerCase()))) return false;
-  if (filters.statuses.length && !filters.statuses.includes(religion.status)) return false;
+  // Add debug logging
+  console.log(`Checking religion: ${religion.name}`);
+  console.log(`Religion properties: era=${religion.era}, continent=${religion.continent}, beliefs=${JSON.stringify(religion.beliefs)}, status=${religion.status}`);
+  console.log(`Active filters: ${JSON.stringify(filters)}`);
+  
+  // Check each filter type
+  if (filters.eras.length > 0) {
+    const match = filters.eras.includes(String(religion.era));
+    console.log(`Era filter match: ${match}`);
+    if (!match) return false;
+  }
+  
+  if (filters.continents.length > 0) {
+    const match = filters.continents.some(c =>
+      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
+      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
+    );
+    console.log(`Continent filter match: ${match}`);
+    if (!match) return false;
+  }
+  
+  if (filters.beliefs.length > 0) {
+    const match = filters.beliefs.some(b =>
+      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
+    );
+    console.log(`Belief filter match: ${match}`);
+    if (!match) return false;
+  }
+  
+  if (filters.statuses.length > 0) {
+    const match = filters.statuses.includes(religion.status);
+    console.log(`Status filter match: ${match}`);
+    if (!match) return false;
+  }
+  
   return true;
 }
 
@@ -112,7 +115,7 @@ function filtersToTitle(filters) {
   return parts.length ? parts.join(' | ') : 'Timeline';
 }
 const pageTitle = filtersToTitle(activeFilters) + ' - Religious Timeline';
-const canonicalUrl = 'https://evolutionofman.org/timeline/' + filters.join('/');
+const canonicalUrl = new URL('/timeline/' + filters.join('/'), Astro.site).href;
 
 ---
 
