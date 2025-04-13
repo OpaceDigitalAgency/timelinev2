@@ -15,6 +15,43 @@ const totalCount = await countReligions();
 ---
 
 <Layout title="Interactive Timeline">
+  <script>
+    // Wait for the DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get the toggle buttons and view containers
+      const horizontalToggle = document.getElementById('horizontal-view-toggle');
+      const verticalToggle = document.getElementById('vertical-view-toggle');
+      const horizontalView = document.getElementById('horizontal-view');
+      const verticalView = document.getElementById('vertical-view');
+      
+      // Add click event listeners to the toggle buttons
+      horizontalToggle?.addEventListener('click', () => {
+        // Show horizontal view, hide vertical view
+        if (horizontalView) horizontalView.style.display = 'block';
+        if (verticalView) verticalView.style.display = 'none';
+        
+        // Update button styles
+        horizontalToggle.classList.add('bg-primary-100', 'border-primary-300');
+        horizontalToggle.classList.remove('bg-white', 'hover:bg-gray-50');
+        
+        verticalToggle?.classList.remove('bg-primary-100', 'border-primary-300');
+        verticalToggle?.classList.add('bg-white', 'hover:bg-gray-50');
+      });
+      
+      verticalToggle?.addEventListener('click', () => {
+        // Show vertical view, hide horizontal view
+        if (horizontalView) horizontalView.style.display = 'none';
+        if (verticalView) verticalView.style.display = 'block';
+        
+        // Update button styles
+        verticalToggle.classList.add('bg-primary-100', 'border-primary-300');
+        verticalToggle.classList.remove('bg-white', 'hover:bg-gray-50');
+        
+        horizontalToggle?.classList.remove('bg-primary-100', 'border-primary-300');
+        horizontalToggle?.classList.add('bg-white', 'hover:bg-gray-50');
+      });
+    });
+  </script>
   <Header />
   
   <div class="min-h-screen flex flex-col">
@@ -49,14 +86,16 @@ const totalCount = await countReligions();
         
         <!-- Timeline Toggle Views -->
         <div id="timeline-container" class="mt-4">
-          <!-- Only render one timeline at a time to prevent duplication -->
-          {/* Use client:only to ensure the component is only rendered on the client side */}
-          <astro-island client:only="react" component-url="../components/HorizontalTimeline" component-export="default" props={{ religions, eras }}>
-            <div id="horizontal-timeline" class="block"></div>
-          </astro-island>
-          <astro-island client:only="react" component-url="../components/VerticalTimeline" component-export="default" props={{ religions, eras }}>
-            <div id="vertical-timeline" class="hidden"></div>
-          </astro-island>
+          <!-- Only render the active timeline to prevent duplication -->
+          <div id="timeline-view">
+            <!-- Only one timeline is rendered at a time -->
+            <div id="horizontal-view">
+              <HorizontalTimeline client:only="react" religions={religions} eras={eras} />
+            </div>
+            <div id="vertical-view" style="display: none;">
+              <VerticalTimeline client:only="react" religions={religions} eras={eras} />
+            </div>
+          </div>
         </div>
       </div>
     </main>
