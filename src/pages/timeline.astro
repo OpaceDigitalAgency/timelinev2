@@ -7,8 +7,10 @@ import HorizontalTimeline from '../components/HorizontalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-// Check for query parameters and redirect to filter page if present
+// Check for query parameters and handle client-side
 const url = new URL(Astro.request.url);
+let initialFilters;
+
 if (url.searchParams.toString()) {
   // Get all filter values
   const eraParams = url.searchParams.getAll('era');
@@ -16,20 +18,13 @@ if (url.searchParams.toString()) {
   const beliefParams = url.searchParams.getAll('belief');
   const statusParams = url.searchParams.getAll('status');
   
-  // Build SEO-friendly filter string
-  const filterParts = [
-    ...eraParams,
-    ...continentParams.map(c => c.toLowerCase().replace(/\s+/g, '-')),
-    ...beliefParams.map(b => b.toLowerCase().replace(/\s+/g, '-')),
-    ...statusParams.map(s => s.toLowerCase())
-  ];
-  
-  // Join with hyphens for a clean URL
-  const filterString = filterParts.join('-');
-  
-  if (filterString) {
-    return Astro.redirect(`/timeline/filter/${filterString}`);
-  }
+  // Pass these as initialFilters to the TimelineFilters component
+  initialFilters = {
+    eras: eraParams,
+    continents: continentParams,
+    beliefs: beliefParams,
+    statuses: statusParams
+  };
 }
 
 // Get religions and eras data
@@ -57,7 +52,7 @@ const totalCount = await countReligions();
       </p>
     </div>
     
-    <TimelineFilters currentView="horizontal" />
+    <TimelineFilters currentView="horizontal" initialFilters={initialFilters} />
     
     <main class="flex-grow">
       <div class="container mx-auto px-4 py-4">

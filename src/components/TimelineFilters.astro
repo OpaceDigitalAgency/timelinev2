@@ -203,15 +203,111 @@ const isMultiFilter =
     const path = window.location.pathname;
     
     // Check if we're on a filter page
-    if (!path.includes('/filter/')) {
-      return filters;
+    if (path.includes('/filter/')) {
+      // Extract the filter string
+      const filterPart = path.split('/filter/')[1];
+      if (filterPart) {
+        // Process filter string
+        processFilterString(filterPart, filters);
+      }
+    } else if (path.includes('/era/')) {
+      // Extract era slug
+      const eraSlug = path.split('/era/')[1].replace(/\/$/, '');
+      if (eraSlug) {
+        addEraFromSlug(eraSlug, filters);
+      }
+    } else if (path.includes('/origin/')) {
+      // Extract origin slug
+      const originSlug = path.split('/origin/')[1].replace(/\/$/, '');
+      if (originSlug) {
+        addOriginFromSlug(originSlug, filters);
+      }
+    } else if (path.includes('/beliefs/')) {
+      // Extract belief slug
+      const beliefSlug = path.split('/beliefs/')[1].replace(/\/$/, '');
+      if (beliefSlug) {
+        addBeliefFromSlug(beliefSlug, filters);
+      }
+    } else if (path.includes('/status/')) {
+      // Extract status slug
+      const statusSlug = path.split('/status/')[1].replace(/\/$/, '');
+      if (statusSlug) {
+        addStatusFromSlug(statusSlug, filters);
+      }
     }
     
-    // Extract the filter string
-    const filterPart = path.split('/filter/')[1];
-    if (!filterPart) {
-      return filters;
+    return filters;
+  }
+  
+  // Helper functions to add filters from slugs
+  function addEraFromSlug(slug, filters) {
+    const eraCheckboxes = Array.from(document.querySelectorAll('input[name="era-filter"]'));
+    const eraLabels = eraCheckboxes.map(cb => {
+      return {
+        id: cb.value,
+        name: cb.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-') || ''
+      };
+    });
+    
+    const matchingEra = eraLabels.find(era => era.name === slug || era.name.includes(slug) || slug.includes(era.name));
+    if (matchingEra && !filters.eras.includes(matchingEra.id)) {
+      filters.eras.push(matchingEra.id);
     }
+  }
+  
+  function addOriginFromSlug(slug, filters) {
+    const continentCheckboxes = Array.from(document.querySelectorAll('input[name="continent-filter"]'));
+    const continentLabels = continentCheckboxes.map(cb => {
+      return {
+        value: cb.value,
+        slug: cb.value.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')
+      };
+    });
+    
+    const matchingContinent = continentLabels.find(continent =>
+      continent.slug === slug || continent.slug.includes(slug) || slug.includes(continent.slug)
+    );
+    if (matchingContinent && !filters.continents.includes(matchingContinent.value)) {
+      filters.continents.push(matchingContinent.value);
+    }
+  }
+  
+  function addBeliefFromSlug(slug, filters) {
+    const beliefCheckboxes = Array.from(document.querySelectorAll('input[name="beliefs-filter"]'));
+    const beliefLabels = beliefCheckboxes.map(cb => {
+      return {
+        value: cb.dataset.belief,
+        slug: cb.dataset.belief?.toLowerCase().replace(/\s+/g, '-') || ''
+      };
+    });
+    
+    const matchingBelief = beliefLabels.find(belief =>
+      belief.slug === slug || belief.slug.includes(slug) || slug.includes(belief.slug)
+    );
+    if (matchingBelief && !filters.beliefs.includes(matchingBelief.value)) {
+      filters.beliefs.push(matchingBelief.value);
+    }
+  }
+  
+  function addStatusFromSlug(slug, filters) {
+    const statusCheckboxes = Array.from(document.querySelectorAll('input[name="status-filter"]'));
+    const statusLabels = statusCheckboxes.map(cb => {
+      return {
+        value: cb.value,
+        slug: cb.value.toLowerCase()
+      };
+    });
+    
+    const matchingStatus = statusLabels.find(status =>
+      status.slug === slug || status.slug.includes(slug) || slug.includes(status.slug)
+    );
+    if (matchingStatus && !filters.statuses.includes(matchingStatus.value)) {
+      filters.statuses.push(matchingStatus.value);
+    }
+  }
+  
+  // Process filter string from /filter/ URLs
+  function processFilterString(filterPart, filters) {
     
     // Get all era checkboxes to match against their labels
     const eraCheckboxes = Array.from(document.querySelectorAll('input[name="era-filter"]'));
@@ -323,29 +419,32 @@ const isMultiFilter =
     
     // For single filters, use SEO-friendly URLs
     if (totalFilters === 1) {
+      // Get current view prefix
+      const viewPrefix = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '';
+      
       // Era filter
       if (filters.eras.length === 1) {
         const eraName = document.querySelector(`input[name="era-filter"][value="${filters.eras[0]}"]`)
           ?.nextElementSibling?.textContent?.trim().toLowerCase().replace(/\s+/g, '-');
-        if (eraName) return `/era/${eraName}/`;
+        if (eraName) return `${viewPrefix}/era/${eraName}/`;
       }
       
       // Continent/origin filter
       if (filters.continents.length === 1) {
         const continent = filters.continents[0].toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
-        return `/origin/${continent}/`;
+        return `${viewPrefix}/origin/${continent}/`;
       }
       
       // Belief filter
       if (filters.beliefs.length === 1) {
         const belief = filters.beliefs[0].toLowerCase().replace(/\s+/g, '-');
-        return `/beliefs/${belief}/`;
+        return `${viewPrefix}/beliefs/${belief}/`;
       }
       
       // Status filter
       if (filters.statuses.length === 1) {
         const status = filters.statuses[0].toLowerCase();
-        return `/status/${status}/`;
+        return `${viewPrefix}/status/${status}/`;
       }
     }
     
@@ -400,6 +499,58 @@ const isMultiFilter =
   document.querySelectorAll('input[name="beliefs-filter"]').forEach(checkbox => {
     checkbox.addEventListener('change', handleFilterChange);
   });
+
+  // Define the handleFilterChange function
+  function handleFilterChange(e) {
+    const checkbox = e.target;
+    const filterType = checkbox.name.split('-')[0]; // era, continent, beliefs, or status
+    
+    // Update active filters based on checkbox state
+    if (checkbox.checked) {
+      // Add filter
+      if (filterType === 'era') {
+        activeFilters.eras.push(checkbox.value);
+      } else if (filterType === 'continent') {
+        activeFilters.continents.push(checkbox.value);
+      } else if (filterType === 'beliefs') {
+        activeFilters.beliefs.push(checkbox.dataset.belief);
+      } else if (filterType === 'status') {
+        activeFilters.statuses.push(checkbox.value);
+      }
+    } else {
+      // Remove filter
+      if (filterType === 'era') {
+        activeFilters.eras = activeFilters.eras.filter(id => id !== checkbox.value);
+      } else if (filterType === 'continent') {
+        activeFilters.continents = activeFilters.continents.filter(c => c !== checkbox.value);
+      } else if (filterType === 'beliefs') {
+        activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== checkbox.dataset.belief);
+      } else if (filterType === 'status') {
+        activeFilters.statuses = activeFilters.statuses.filter(s => s !== checkbox.value);
+      }
+    }
+    
+    // Build new URL path based on filters
+    const newPath = buildPathFromFilters(activeFilters);
+    
+    // Count total filters
+    const totalFilters = activeFilters.eras.length + activeFilters.continents.length +
+                        activeFilters.beliefs.length + activeFilters.statuses.length;
+    
+    // For multi-filters, use history.pushState to avoid page reload
+    if (totalFilters > 1) {
+      // Update URL without causing a page reload
+      window.history.pushState({}, '', newPath);
+      
+      // Dispatch custom event to notify timeline components of filter change
+      document.dispatchEvent(new CustomEvent('filters-changed', {
+        detail: { filters: activeFilters }
+      }));
+    } else {
+      // For single filters or no filters, navigate to the SEO-friendly URL
+      window.location.href = newPath;
+    }
+  }
 
   document.querySelectorAll('input[name="status-filter"]').forEach(checkbox => {
     checkbox.addEventListener('change', handleFilterChange);
