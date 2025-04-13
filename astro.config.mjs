@@ -8,5 +8,5 @@ export default defineConfig({
     react(),
   ],
   site: 'https://evolution-of-religion.netlify.app',
-  output: 'static',
+  output: 'hybrid',
 });
