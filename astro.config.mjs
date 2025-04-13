@@ -11,4 +11,11 @@ export default defineConfig({
   site: 'https://evolution-of-religion.netlify.app',
   output: 'hybrid',
   adapter: netlify(),
+  vite: {
+    build: {
+      rollupOptions: {
+        external: ['/src/components/EditableSection', '/src/components/EditableSection.tsx']
+      }
+    }
+  },
 });
