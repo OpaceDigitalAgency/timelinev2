@@ -60,23 +60,25 @@ const totalCount = await countReligions();
             <div class="sr-only">
               <h2>Timeline of Religious Traditions</h2>
               <ul>
-                {religions.map(religion => (
-                  <li>
-                    <h3>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h3>
-                    <p>{religion.summary}</p>
-                    {religion.beliefs && religion.beliefs.length > 0 && (
-                      <div>
-                        <h4>Key Beliefs:</h4>
-                        <ul>
-                          {religion.beliefs.map(belief => (
-                            <li>{belief}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
-                  </li>
-                ))}
+                {religions.map(religion => {
+                  return (
+                    <li>
+                      <h3>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h3>
+                      <p>{religion.summary}</p>
+                      {religion.beliefs && religion.beliefs.length > 0 && (
+                        <div>
+                          <h4>Key Beliefs:</h4>
+                          <ul>
+                            {religion.beliefs.map(belief => (
+                              <li>{belief}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
