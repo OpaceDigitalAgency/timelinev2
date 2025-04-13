@@ -171,13 +171,10 @@ export async function fetchReligions(): Promise<Religion[]> {
 }
 
 export async function fetchReligionBySlug(slug: string): Promise<Religion | null> {
-  // Convert slug back to a name by replacing hyphens with spaces and capitalizing words
-  const nameFromSlug = slug
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
-  const { data, error } = await supabase
+  console.log(`Fetching religion by slug: ${slug}`);
+  
+  // First try to find by slug field if it exists
+  let query = supabase
     .from('religions')
     .select(`
       *,
@@ -187,20 +184,55 @@ export async function fetchReligionBySlug(slug: string): Promise<Religion | null
       religion_texts (text_name),
       religion_figures (figure_name),
       religion_branches (branch_name)
-    `)
-    .ilike('name', nameFromSlug)
-    .single();
-
+    `);
+  
+  // Check if the religions table has a slug column
+  const { data: tableInfo, error: tableError } = await supabase
+    .from('religions')
+    .select('slug')
+    .limit(1);
+  
+  if (tableError) {
+    console.error('Error checking for slug column:', tableError);
+  }
+  
+  // If the slug column exists, use it for the query
+  if (tableInfo && tableInfo.length > 0 && 'slug' in tableInfo[0]) {
+    console.log('Using slug column for query');
+    query = query.eq('slug', slug);
+  } else {
+    // Convert slug back to a name by replacing hyphens with spaces and capitalizing words
+    const nameFromSlug = slug
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    console.log(`Converted slug to name: "${nameFromSlug}"`);
+    query = query.ilike('name', nameFromSlug);
+  }
+  
+  // Execute the query
+  const { data, error } = await query.limit(1);
+  
   if (error) {
     console.error('Error fetching religion by slug:', error);
     return null;
   }
+  
+  if (!data || data.length === 0) {
+    console.error(`No religion found for slug: ${slug}`);
+    return null;
+  }
+  
+  // Use the first result
+  const religionData = data[0];
+  console.log(`Found religion: ${religionData.name}`);
 
   // Get religion relationships
   const { data: parentData, error: parentError } = await supabase
     .from('religion_relationships')
     .select('parent_id')
-    .eq('child_id', data.id);
+    .eq('child_id', religionData.id);
 
   if (parentError) {
     console.error('Error fetching parent religions:', parentError);
@@ -210,41 +242,41 @@ export async function fetchReligionBySlug(slug: string): Promise<Religion | null
   const { data: childData, error: childError } = await supabase
     .from('religion_relationships')
     .select('child_id')
-    .eq('parent_id', data.id);
+    .eq('parent_id', religionData.id);
 
   if (childError) {
     console.error('Error fetching child religions:', childError);
     return null;
   }
 
-  const beliefs = data.religion_beliefs
-    .map(b => b.belief)
+  const beliefs = religionData.religion_beliefs
+    .map((b: any) => b.belief)
     .filter(isValidBeliefSystem);
-  const practices = data.religion_practices.map(p => p.practice);
-  const holyTexts = data.religion_texts.map(t => t.text_name);
-  const keyFigures = data.religion_figures.map(f => f.figure_name);
-  const branches = data.religion_branches.map(b => b.branch_name);
+  const practices = religionData.religion_practices.map((p: any) => p.practice);
+  const holyTexts = religionData.religion_texts.map((t: any) => t.text_name);
+  const keyFigures = religionData.religion_figures.map((f: any) => f.figure_name);
+  const branches = religionData.religion_branches.map((b: any) => b.branch_name);
   
   return {
-    id: data.id,
-    name: data.name,
-    summary: data.summary || '',
-    description: data.description || '',
-    founderName: data.founder_name || undefined,
-    foundingYear: data.founding_year,
-    continent: data.continent as any,
-    originCountry: data.origin_country || '',
+    id: religionData.id,
+    name: religionData.name,
+    summary: religionData.summary || '',
+    description: religionData.description || '',
+    founderName: religionData.founder_name || undefined,
+    foundingYear: religionData.founding_year,
+    continent: religionData.continent as any,
+    originCountry: religionData.origin_country || '',
     beliefs: beliefs,
-    status: (data.status || 'active') as 'active' | 'extinct' | 'evolved',
-    approxFollowers: data.approx_followers || undefined,
+    status: (religionData.status || 'active') as 'active' | 'extinct' | 'evolved',
+    approxFollowers: religionData.approx_followers || undefined,
     practices: practices,
     holyTexts: holyTexts.length > 0 ? holyTexts : undefined,
     keyFigures: keyFigures.length > 0 ? keyFigures : undefined,
     branches: branches.length > 0 ? branches : undefined,
     parentReligions: parentData.map(p => p.parent_id),
     childReligions: childData.map(c => c.child_id),
-    imageUrl: data.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
-    era: data.era?.id || ''
+    imageUrl: religionData.image_url || `https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=800&q=80`,
+    era: religionData.era?.id || ''
   };
 }
 
