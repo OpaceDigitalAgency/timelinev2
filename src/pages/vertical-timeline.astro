@@ -7,10 +7,58 @@ import VerticalTimeline from '../components/VerticalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
+// Get query parameters
+const url = new URL(Astro.request.url);
+const eraParams = url.searchParams.getAll('era');
+const continentParams = url.searchParams.getAll('continent');
+const beliefParams = url.searchParams.getAll('belief');
+const statusParams = url.searchParams.getAll('status');
+
+// Create filter object
+const activeFilters = {
+  eras: eraParams,
+  continents: continentParams,
+  beliefs: beliefParams,
+  statuses: statusParams
+};
+
 // Get religions and eras data
-const religions = await fetchReligions();
+const allReligions = await fetchReligions();
 const eras = await fetchEras();
 const totalCount = await countReligions();
+
+// Filter religions based on activeFilters
+function religionMatchesFilters(religion, filters) {
+  // Check each filter type
+  if (filters.eras.length > 0) {
+    const match = filters.eras.includes(String(religion.era));
+    if (!match) return false;
+  }
+  
+  if (filters.continents.length > 0) {
+    const match = filters.continents.some(c =>
+      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
+      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.beliefs.length > 0) {
+    const match = filters.beliefs.some(b =>
+      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.statuses.length > 0) {
+    const match = filters.statuses.includes(religion.status);
+    if (!match) return false;
+  }
+  
+  return true;
+}
+
+const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
 
 // Helper function to format year display
 const formatYear = (year: number) => year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;

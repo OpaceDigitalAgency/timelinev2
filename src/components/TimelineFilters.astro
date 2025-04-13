@@ -165,33 +165,47 @@ const { currentView = 'horizontal' } = Astro.props;
 
   // --- SEO URL FILTER LOGIC ---
 
-  // Parse filters from current URL path
+  // Parse filters from URL query parameters
   function getFiltersFromPath() {
-    const path = window.location.pathname;
-    // Match /timeline or /timeline/...
-    const match = path.match(/^\/timeline(?:\/(.*))?$/);
-    if (!match || !match[1]) return { eras: [], continents: [], beliefs: [], statuses: [] };
-    const segments = match[1].split('/').filter(Boolean);
-    const filters = { eras: [], continents: [], beliefs: [], statuses: [] };
-    for (let i = 0; i < segments.length; i += 2) {
-      const key = segments[i];
-      const value = segments[i + 1];
-      if (!value) break;
-      switch (key) {
-        case 'era':
-          filters.eras.push(value);
-          break;
-        case 'continent':
-          filters.continents.push(value);
-          break;
-        case 'belief':
-          filters.beliefs.push(value);
-          break;
-        case 'status':
-          filters.statuses.push(value);
-          break;
+    const filters = {
+      eras: [],
+      continents: [],
+      beliefs: [],
+      statuses: [],
+      searchTerm: ''
+    };
+    
+    // Get query parameters
+    const params = new URLSearchParams(window.location.search);
+    
+    // Parse era parameters
+    params.getAll('era').forEach(value => {
+      if (value && !filters.eras.includes(value)) {
+        filters.eras.push(value);
       }
-    }
+    });
+    
+    // Parse continent parameters
+    params.getAll('continent').forEach(value => {
+      if (value && !filters.continents.includes(value)) {
+        filters.continents.push(value);
+      }
+    });
+    
+    // Parse belief parameters
+    params.getAll('belief').forEach(value => {
+      if (value && !filters.beliefs.includes(value)) {
+        filters.beliefs.push(value);
+      }
+    });
+    
+    // Parse status parameters
+    params.getAll('status').forEach(value => {
+      if (value && !filters.statuses.includes(value)) {
+        filters.statuses.push(value);
+      }
+    });
+    
     return filters;
   }
 
@@ -211,23 +225,41 @@ const { currentView = 'horizontal' } = Astro.props;
     });
   }
 
-  // Build SEO-friendly path from filters
+  // Build path with query parameters from filters
   function buildPathFromFilters(filters) {
-    let path = '/timeline';
+    // Determine base path based on current view
+    const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
+    
+    // If no filters, return base path
     if (
-      filters.eras.length ||
-      filters.continents.length ||
-      filters.beliefs.length ||
-      filters.statuses.length
+      !filters.eras.length &&
+      !filters.continents.length &&
+      !filters.beliefs.length &&
+      !filters.statuses.length
     ) {
-      const segments = [];
-      filters.eras.forEach(v => { segments.push('era', v); });
-      filters.continents.forEach(v => { segments.push('continent', v); });
-      filters.beliefs.forEach(v => { segments.push('belief', v); });
-      filters.statuses.forEach(v => { segments.push('status', v); });
-      path += '/' + segments.join('/');
+      return basePath;
     }
-    return path;
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    if (filters.eras.length) {
+      filters.eras.forEach(v => params.append('era', v));
+    }
+    
+    if (filters.continents.length) {
+      filters.continents.forEach(v => params.append('continent', v));
+    }
+    
+    if (filters.beliefs.length) {
+      filters.beliefs.forEach(v => params.append('belief', v));
+    }
+    
+    if (filters.statuses.length) {
+      filters.statuses.forEach(v => params.append('status', v));
+    }
+    
+    return `${basePath}?${params.toString()}`;
   }
 
   // Filtering functionality
@@ -333,9 +365,10 @@ const { currentView = 'horizontal' } = Astro.props;
       searchTerm: ''
     };
 
-    // Update URL to base timeline
-    if (window.location.pathname !== '/timeline') {
-      window.location.href = '/timeline';
+    // Update URL to base timeline (preserving the current view)
+    const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
+    if (window.location.pathname !== basePath || window.location.search !== '') {
+      window.location.href = basePath;
     }
   }
 </script>
