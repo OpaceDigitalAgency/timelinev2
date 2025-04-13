@@ -432,7 +432,7 @@ const jsonLd = {
           <a href="/login" class="btn btn-secondary inline-flex items-center">
             Sign in to suggest edits
           </a>
-          <a href={`/suggest?religion=${religion.id}`} class="btn btn-primary inline-flex items-center">
+          <a href={`/suggest?religion=${createSlug(religion.name)}`} class="btn btn-primary inline-flex items-center">
             <Edit className="h-4 w-4 mr-2" />
             Suggest an Edit
           </a>

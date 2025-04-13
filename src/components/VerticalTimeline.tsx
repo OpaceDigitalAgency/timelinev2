@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Religion, Era } from '../types';
+import { createSlug } from '../lib/utils';
 
 interface VerticalTimelineProps {
   religions: Religion[];
@@ -162,7 +163,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
                           )}
                           
                           <div className={`mt-3 ${index % 2 === 0 ? 'md:text-right' : ''}`}>
-                            <a href={`/religions/${religion.id}`} className="text-primary-600 text-sm font-medium hover:text-primary-800 transition-colors">
+                            <a href={`/religions/${createSlug(religion.name)}`} className="text-primary-600 text-sm font-medium hover:text-primary-800 transition-colors">
                               View Details →
                             </a>
                           </div>

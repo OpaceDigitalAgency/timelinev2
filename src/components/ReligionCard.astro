@@ -1,22 +1,13 @@
 ---
 import { Calendar, Users, Globe, Bookmark } from 'lucide-react';
 import type { Religion } from '../types';
+import { createSlug } from '../lib/utils';
 
 interface Props {
   religion: Religion;
 }
 
 const { religion } = Astro.props;
-
-// Function to create a slug from a religion name
-function createSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
-    .trim();
-}
 
 function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
