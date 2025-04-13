@@ -5,19 +5,38 @@ import Footer from '../../components/Footer.astro';
 import { fetchReligionById, fetchReligions, fetchEras } from '../../lib/services/religionService';
 import { Clock, Book, Users, MapPin, Edit, Share2, ArrowLeft, Heart, Brain, Compass, Sparkles } from 'lucide-react';
 
-export async function getStaticPaths() {
-  const religions = await fetchReligions();
-  return religions.map(religion => ({
-    params: { id: religion.id },
-    props: { religionId: religion.id },
-  }));
+// Function to create a slug from a religion name
+function createSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
+    .trim();
 }
 
-const { religionId } = Astro.props;
+export async function getStaticPaths() {
+  const religions = await fetchReligions();
+  return religions.map(religion => {
+    const slug = createSlug(religion.name);
+    return {
+      params: { id: slug },
+      props: { religionId: religion.id, slug },
+    };
+  });
+}
+
+const { religionId, slug } = Astro.props;
 const religion = await fetchReligionById(religionId);
 
 if (!religion) {
   return Astro.redirect('/404');
+}
+
+// Verify the slug matches the religion name
+const correctSlug = createSlug(religion.name);
+if (slug !== correctSlug) {
+  return Astro.redirect(`/religions/${correctSlug}`);
 }
 
 function formatYear(year: number): string {
@@ -55,7 +74,7 @@ const jsonLd = {
   "@type": "Thing",
   "name": religion.name,
   "description": religion.description,
-  "url": new URL(`/religions/${religion.id}`, Astro.site).href,
+  "url": new URL(`/religions/${slug}`, Astro.site).href,
   "image": religion.imageUrl,
   "sameAs": [
     `https://en.wikipedia.org/wiki/${encodeURIComponent(religion.name)}`
@@ -349,7 +368,7 @@ const jsonLd = {
                   <h4 class="text-lg font-medium mb-2">Parent Traditions</h4>
                   <div class="space-y-2">
                     {relatedReligions.map(rel => rel && (
-                      <a href={`/religions/${rel.id}`} class="block bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors">
+                      <a href={`/religions/${createSlug(rel.name)}`} class="block bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors">
                         <div class="font-medium">{rel.name}</div>
                         <div class="text-sm text-gray-500">{formatYear(rel.foundingYear)}</div>
                       </a>
@@ -363,7 +382,7 @@ const jsonLd = {
                   <h4 class="text-lg font-medium mb-2">Derived Traditions</h4>
                   <div class="space-y-2">
                     {childReligions.map(rel => rel && (
-                      <a href={`/religions/${rel.id}`} class="block bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors">
+                      <a href={`/religions/${createSlug(rel.name)}`} class="block bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors">
                         <div class="font-medium">{rel.name}</div>
                         <div class="text-sm text-gray-500">{formatYear(rel.foundingYear)}</div>
                       </a>
@@ -398,7 +417,7 @@ const jsonLd = {
         <h2 class="text-2xl font-bold mb-6">More from {religion.era || 'Ancient'}</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sameEraReligions.map(rel => (
-            <a href={`/religions/${rel.id}`} class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
+            <a href={`/religions/${createSlug(rel.name)}`} class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
               <h3 class="font-bold text-lg mb-2">{rel.name}</h3>
               <p class="text-gray-600 text-sm mb-3">{rel.summary}</p>
               <div class="flex items-center text-xs text-gray-500">

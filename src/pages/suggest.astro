@@ -2,13 +2,26 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { fetchReligions } from '../lib/services/religionService';
-/*
-  TODO: To support editing existing religions, fetch the religion by ID from Supabase using fetchReligionById.
-  For now, the form only supports suggesting new religions.
-*/
-const religion = null;
-const religionId = null; // Default value when not editing an existing religion
+import { fetchReligions, fetchReligionById } from '../lib/services/religionService';
+
+// Function to create a slug from a religion name
+function createSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
+    .trim();
+}
+
+// Get religion ID from query parameter if it exists
+const religionId = Astro.url.searchParams.get('religion');
+let religion = null;
+
+if (religionId) {
+  religion = await fetchReligionById(religionId);
+}
+
 const religions = await fetchReligions();
 ---
 

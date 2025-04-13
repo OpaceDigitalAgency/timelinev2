@@ -60,9 +60,10 @@ const totalCount = await countReligions();
             <div class="sr-only">
               <h2>Timeline of Religious Traditions by Era</h2>
               {eras.map(era => {
-                const eraReligions = religions.filter(religion => {
-                  return religion.foundingYear >= era.startYear && religion.foundingYear <= era.endYear;
-                });
+                // Filter religions that belong to this era
+                const eraReligions = religions.filter(religion =>
+                  religion.foundingYear >= era.startYear && religion.foundingYear <= era.endYear
+                );
                 
                 if (eraReligions.length > 0) {
                   return (

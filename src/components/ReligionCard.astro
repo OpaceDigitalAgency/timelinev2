@@ -8,6 +8,16 @@ interface Props {
 
 const { religion } = Astro.props;
 
+// Function to create a slug from a religion name
+function createSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
+    .trim();
+}
+
 function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
 }
@@ -65,7 +75,7 @@ const statusClasses = {
   )}
   
   <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
-    <a href={`/religions/${religion.id}`} class="text-primary-600 text-sm font-medium hover:text-primary-800 transition-colors">
+    <a href={`/religions/${createSlug(religion.name)}`} class="text-primary-600 text-sm font-medium hover:text-primary-800 transition-colors">
       View Details
     </a>
     <button class="text-gray-400 hover:text-primary-600 transition-colors">
