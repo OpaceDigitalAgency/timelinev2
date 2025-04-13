@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { Religion, Era } from '../types';
+import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 interface HorizontalTimelineProps {
   religions: Religion[];
@@ -13,6 +14,8 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
   const [selectedReligion, setSelectedReligion] = useState<Religion | null>(null);
   const [width, setWidth] = useState(1000);
   const [filteredReligions, setFilteredReligions] = useState<Religion[]>(initialReligions);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const height = 600; // Increased height for better spacing
   const nodeRadius = 8;
   const padding = { top: 50, right: 70, bottom: 150, left: 70 };
@@ -102,16 +105,75 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
     setFilteredReligions(initialReligions);
   }, [initialReligions]);
 
+  // Listen for timeline zoom and refresh events from the page controls
   useEffect(() => {
-    if (!svgRef.current || filteredReligions.length === 0) return;
+    const handleTimelineZoom = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail === 'in') {
+        handleZoomIn();
+      } else if (customEvent.detail === 'out') {
+        handleZoomOut();
+      }
+    };
 
-    const svg = d3.select(svgRef.current);
+    const handleTimelineRefresh = () => {
+      handleRefresh();
+    };
+
+    document.addEventListener('timeline-zoom', handleTimelineZoom);
+    document.addEventListener('timeline-refresh', handleTimelineRefresh);
+
+    return () => {
+      document.removeEventListener('timeline-zoom', handleTimelineZoom);
+      document.removeEventListener('timeline-refresh', handleTimelineRefresh);
+    };
+  }, []);
+// Function to handle zoom in
+const handleZoomIn = () => {
+  setZoomLevel(prev => Math.min(prev + 0.25, 3));
+};
+
+// Function to handle zoom out
+const handleZoomOut = () => {
+  setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+};
+
+// Function to refresh the timeline
+const handleRefresh = () => {
+  setIsLoading(true);
+  // Simulate a refresh by resetting the filtered religions and then setting them back
+  setFilteredReligions([]);
+  setTimeout(() => {
+    setFilteredReligions(initialReligions);
+    setIsLoading(false);
+  }, 500);
+};
+
+useEffect(() => {
+  if (!svgRef.current || filteredReligions.length === 0) return;
+
+  const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
     // Sort religions by founding year for more consistent visualization
     // Filter out religions with missing foundingYear (required for timeline placement)
+    // Also filter out duplicate religions by ID to prevent duplicates in the timeline
+    const uniqueReligionIds = new Set();
     const sortedReligions = [...filteredReligions]
-      .filter(r => typeof r.foundingYear === 'number' && !isNaN(r.foundingYear))
+      .filter(r => {
+        // Filter out religions with missing foundingYear
+        if (typeof r.foundingYear !== 'number' || isNaN(r.foundingYear)) {
+          return false;
+        }
+        
+        // Filter out duplicate religions by ID
+        if (uniqueReligionIds.has(r.id)) {
+          return false;
+        }
+        
+        uniqueReligionIds.add(r.id);
+        return true;
+      })
       .sort((a, b) => a.foundingYear - b.foundingYear);
 
     // Find min and max years for scale with padding to prevent edge crowding
@@ -497,11 +559,48 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
       .attr('fill', '#64748b')
       .text(`Showing ${sortedReligions.length} religions`);
 
-  }, [filteredReligions, eras, width]);
+  }, [filteredReligions, eras, width, zoomLevel]);
 
   return (
-    <div className="w-full overflow-x-auto" ref={containerRef}>
-      <div className="min-w-[1000px]">
+    <div className="relative">
+      {/* Timeline Controls */}
+      <div className="absolute top-4 right-4 flex space-x-2 z-10">
+        <button
+          onClick={handleZoomIn}
+          className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          title="Zoom In"
+          disabled={zoomLevel >= 3}
+        >
+          <ZoomIn className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          title="Zoom Out"
+          disabled={zoomLevel <= 0.5}
+        >
+          <ZoomOut className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <button
+          onClick={handleRefresh}
+          className={`p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${isLoading ? 'animate-spin' : ''}`}
+          title="Refresh Timeline"
+          disabled={isLoading}
+        >
+          <RefreshCw className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+        </button>
+      </div>
+      
+      <div
+        className="w-full overflow-x-auto"
+        ref={containerRef}
+        style={{
+          transform: `scale(${zoomLevel})`,
+          transformOrigin: 'top left',
+          transition: 'transform 0.3s ease'
+        }}
+      >
+        <div className="min-w-[1000px]">
         {filteredReligions.length === 0 ? (
           <div className="text-center p-10">
             <p className="text-gray-500">No religions match the current filters. Try adjusting your filters.</p>
@@ -514,8 +613,8 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
             className="timeline-svg"
           />
         )}
+        </div>
       </div>
-      
       {selectedReligion && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedReligion(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
