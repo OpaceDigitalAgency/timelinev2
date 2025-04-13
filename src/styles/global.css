@@ -116,3 +116,49 @@
     @apply shadow-xl shadow-gray-900/20;
   }
 }
+
+/* Timeline specific styles */
+.timeline-svg {
+  @apply overflow-visible;
+}
+
+.timeline-container {
+  @apply transition-transform duration-300;
+}
+
+/* Timeline node hover effects */
+.religion-node circle {
+  @apply transition-all duration-200;
+}
+
+.religion-node:hover circle:nth-child(2) {
+  @apply transform scale-110;
+}
+
+/* Timeline connection lines */
+.connections path, .links path {
+  @apply transition-opacity duration-200;
+}
+
+.connections path:hover, .links path:hover {
+  @apply opacity-100;
+  stroke-width: 3px;
+}
+
+/* Timeline era sections */
+.era-group rect {
+  @apply transition-opacity duration-200;
+}
+
+.era-group:hover rect {
+  @apply opacity-80;
+}
+
+/* Timeline tooltips */
+.timeline-tooltip {
+  @apply absolute bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700 z-50 text-sm pointer-events-none transition-opacity duration-200 opacity-0;
+}
+
+.timeline-tooltip.visible {
+  @apply opacity-100;
+}
