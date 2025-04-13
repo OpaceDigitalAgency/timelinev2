@@ -4,16 +4,7 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { fetchReligionById, fetchReligions, fetchEras } from '../../lib/services/religionService';
 import { Clock, Book, Users, MapPin, Edit, Share2, ArrowLeft, Heart, Brain, Compass, Sparkles } from 'lucide-react';
-
-// Function to create a slug from a religion name
-function createSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
-    .trim();
-}
+import { createSlug } from '../../lib/utils';
 
 export async function getStaticPaths() {
   const religions = await fetchReligions();
