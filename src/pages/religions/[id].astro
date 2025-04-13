@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import EditableSection from '../../components/EditableSection.tsx';
 import { fetchReligionBySlug, fetchReligions, fetchEras } from '../../lib/services/religionService';
 import { Clock, Book, Users, MapPin, Edit, Share2, ArrowLeft, Heart, Brain, Compass, Sparkles } from 'lucide-react';
 import { createSlug } from '../../lib/utils';
@@ -45,7 +46,15 @@ const relatedReligions = religion.parentReligions?.map(id => allReligions.find(r
 const childReligions = religion.childReligions?.map(id => allReligions.find(r => r.id === id)).filter(Boolean) || [];
 
 // Get era information
-const eraInfo = religion.era ? allReligions.find(r => r.era === religion.era)?.era : '';
+import { fetchEras } from '../../lib/services/religionService';
+const eras = await fetchEras();
+let eraInfo = '';
+if (religion.era && typeof religion.era === 'object' && 'name' in religion.era) {
+  eraInfo = religion.era.name;
+} else if (religion.era) {
+  const eraObj = eras.find(e => e.id === religion.era);
+  eraInfo = eraObj ? eraObj.name : '';
+}
 
 // Get religions from the same era for "More from" section
 const sameEraReligions = allReligions
@@ -72,8 +81,8 @@ const jsonLd = {
   ],
   "subjectOf": {
     "@type": "CreativeWork",
-    "name": "Evolution of Religion Timeline",
-    "description": "An interactive timeline mapping the evolution of religious beliefs across history and geography."
+    "name": "Evolution of Man",
+    "description": "An interactive timeline mapping the evolution of humanity across history and geography."
   }
 };
 ---
@@ -146,19 +155,41 @@ const jsonLd = {
           <!-- Overview -->
           <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-2xl font-bold mb-4">Overview</h2>
-            <p class="text-gray-700 leading-relaxed mb-6">{religion.description}</p>
+            <EditableSection
+              client:only="react"
+              label="Overview"
+              value={religion.description || ""}
+              textarea={true}
+              onSubmit={(newValue, details) => {
+                // For now, just log the submission. In a real app, send to backend for review.
+                console.log("Overview change submitted:", { newValue, details });
+              }}
+              className="mb-6"
+            />
             
             {religion.beliefs.length > 0 && (
               <div class="mb-6">
-                <h3 class="text-xl font-semibold mb-3">Core Beliefs</h3>
-                <div class="flex flex-wrap gap-2 mb-3">
-                  {religion.beliefs.map(belief => (
-                    <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">{belief}</span>
-                  ))}
-                </div>
-                <p class="text-gray-700">
-                  {religion.name} is characterized by its {religion.beliefs.join(', ').toLowerCase()} approach to understanding the divine and spiritual reality.
-                </p>
+                <EditableSection
+                  client:only="react"
+                  label="Core Beliefs"
+                  value={religion.beliefs.join('\n')}
+                  textarea={true}
+                  onSubmit={(newValue, details) => {
+                    // For now, just log the submission. In a real app, send to backend for review.
+                    console.log("Core Beliefs change submitted:", { newValue, details });
+                  }}
+                  className="mb-3"
+                >
+                  <h3 class="text-xl font-semibold mb-3">Core Beliefs</h3>
+                  <div class="flex flex-wrap gap-2 mb-3">
+                    {religion.beliefs.map(belief => (
+                      <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">{belief}</span>
+                    ))}
+                  </div>
+                  <p class="text-gray-700">
+                    {religion.name} is characterized by its {religion.beliefs.join(', ').toLowerCase()} approach to understanding the divine and spiritual reality.
+                  </p>
+                </EditableSection>
               </div>
             )}
           </div>
@@ -172,13 +203,24 @@ const jsonLd = {
             
             <!-- Main Teachings Card -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-blue-500">
-              <div class="flex items-center mb-3">
-                <Book className="h-5 w-5 text-blue-500 mr-2" />
-                <h3 class="text-xl font-semibold">Main Teachings</h3>
-              </div>
-              <p class="text-gray-700">
-                The Dreamtime or Dreaming explains creation, natural features, and social laws. These oral traditions vary among different Aboriginal groups but share common elements of ancestry, totems, and sacred sites.
-              </p>
+              <EditableSection
+                client:only="react"
+                label="Main Teachings"
+                value={"The Dreamtime or Dreaming explains creation, natural features, and social laws. These oral traditions vary among different Aboriginal groups but share common elements of ancestry, totems, and sacred sites."}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Main Teachings change submitted:", { newValue, details });
+                }}
+                className="mb-3"
+              >
+                <div class="flex items-center mb-3">
+                  <Book className="h-5 w-5 text-blue-500 mr-2" />
+                  <h3 class="text-xl font-semibold">Main Teachings</h3>
+                </div>
+                <p class="text-gray-700">
+                  The Dreamtime or Dreaming explains creation, natural features, and social laws. These oral traditions vary among different Aboriginal groups but share common elements of ancestry, totems, and sacred sites.
+                </p>
+              </EditableSection>
             </div>
             
             <!-- Metaphysical Beliefs Card -->
@@ -187,9 +229,24 @@ const jsonLd = {
                 <Brain className="h-5 w-5 text-purple-500 mr-2" />
                 <h3 class="text-xl font-semibold">Metaphysical Beliefs</h3>
               </div>
-              <p class="text-gray-700">
-                Ancestral beings shaped the landscape and established laws during the Dreamtime. Their spirits remain in the land. Time is non-linear, with past, present, and future interconnected. Sacred sites contain spiritual power.
-              </p>
+              <EditableSection
+                client:only="react"
+                label="Metaphysical Beliefs"
+                value={"Ancestral beings shaped the landscape and established laws during the Dreamtime. Their spirits remain in the land. Time is non-linear, with past, present, and future interconnected. Sacred sites contain spiritual power."}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Metaphysical Beliefs change submitted:", { newValue, details });
+                }}
+                className="mb-3"
+              >
+                <div class="flex items-center mb-3">
+                  <Brain className="h-5 w-5 text-purple-500 mr-2" />
+                  <h3 class="text-xl font-semibold">Metaphysical Beliefs</h3>
+                </div>
+                <p class="text-gray-700">
+                  Ancestral beings shaped the landscape and established laws during the Dreamtime. Their spirits remain in the land. Time is non-linear, with past, present, and future interconnected. Sacred sites contain spiritual power.
+                </p>
+              </EditableSection>
             </div>
             
             <!-- Ethical and Moral Principles Card -->
@@ -198,9 +255,24 @@ const jsonLd = {
                 <Compass className="h-5 w-5 text-green-500 mr-2" />
                 <h3 class="text-xl font-semibold">Ethical and Moral Principles</h3>
               </div>
-              <p class="text-gray-700">
-                Living in harmony with nature and maintaining balance in social relationships are paramount. Knowledge is shared according to one's readiness and role. Respect for elders and ancestors guides social norms.
-              </p>
+              <EditableSection
+                client:only="react"
+                label="Ethical and Moral Principles"
+                value={"Living in harmony with nature and maintaining balance in social relationships are paramount. Knowledge is shared according to one's readiness and role. Respect for elders and ancestors guides social norms."}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Ethical and Moral Principles change submitted:", { newValue, details });
+                }}
+                className="mb-3"
+              >
+                <div class="flex items-center mb-3">
+                  <Compass className="h-5 w-5 text-green-500 mr-2" />
+                  <h3 class="text-xl font-semibold">Ethical and Moral Principles</h3>
+                </div>
+                <p class="text-gray-700">
+                  Living in harmony with nature and maintaining balance in social relationships are paramount. Knowledge is shared according to one's readiness and role. Respect for elders and ancestors guides social norms.
+                </p>
+              </EditableSection>
             </div>
           </div>
           
@@ -214,20 +286,44 @@ const jsonLd = {
                 <Sparkles className="h-5 w-5 text-amber-500 mr-2" />
                 <h3 class="text-xl font-semibold">Ritual and Devotional Practices</h3>
               </div>
-              <p class="text-gray-700">
-                Ceremonies connect participants to the Dreamtime through music, dance, and body decoration. Songlines follow ancestral journeys across the landscape. Initiation rites mark life transitions. Sacred sites require proper protocols.
-              </p>
+              <EditableSection
+                client:only="react"
+                label="Ritual and Devotional Practices"
+                value={"Ceremonies connect participants to the Dreamtime through music, dance, and body decoration. Songlines follow ancestral journeys across the landscape. Initiation rites mark life transitions. Sacred sites require proper protocols."}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Ritual and Devotional Practices change submitted:", { newValue, details });
+                }}
+                className="mb-3"
+              >
+                <div class="flex items-center mb-3">
+                  <Sparkles className="h-5 w-5 text-amber-500 mr-2" />
+                  <h3 class="text-xl font-semibold">Ritual and Devotional Practices</h3>
+                </div>
+                <p class="text-gray-700">
+                  Ceremonies connect participants to the Dreamtime through music, dance, and body decoration. Songlines follow ancestral journeys across the landscape. Initiation rites mark life transitions. Sacred sites require proper protocols.
+                </p>
+              </EditableSection>
             </div>
             
             {religion.practices && religion.practices.length > 0 && (
-              <div class="bg-white rounded-lg shadow-md p-6 mb-4">
+              <EditableSection
+                client:only="react"
+                label="Key Practices"
+                value={religion.practices.join('\n')}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Key Practices change submitted:", { newValue, details });
+                }}
+                className="mb-4"
+              >
                 <h3 class="text-xl font-semibold mb-3">Key Practices</h3>
                 <ul class="list-disc pl-6 space-y-2 text-gray-700">
                   {religion.practices.map(practice => (
                     <li>{practice}</li>
                   ))}
                 </ul>
-              </div>
+              </EditableSection>
             )}
           </div>
           
@@ -238,9 +334,20 @@ const jsonLd = {
               Historical Context
             </h2>
             <div class="bg-white rounded-lg shadow-md p-6">
-              <p class="text-gray-700">
-                {religion.name} developed over thousands of years through oral traditions. The historical context includes the migration patterns, cultural exchanges, and environmental adaptations that shaped its development.
-              </p>
+              <EditableSection
+                client:only="react"
+                label="Historical Context"
+                value={`${religion.name} developed over thousands of years through oral traditions. The historical context includes the migration patterns, cultural exchanges, and environmental adaptations that shaped its development.`}
+                textarea={true}
+                onSubmit={(newValue, details) => {
+                  console.log("Historical Context change submitted:", { newValue, details });
+                }}
+                className="mb-2"
+              >
+                <p class="text-gray-700">
+                  {religion.name} developed over thousands of years through oral traditions. The historical context includes the migration patterns, cultural exchanges, and environmental adaptations that shaped its development.
+                </p>
+              </EditableSection>
             </div>
           </div>
           
@@ -252,7 +359,16 @@ const jsonLd = {
             </h2>
             <div class="bg-white rounded-lg shadow-md p-6">
               {religion.keyFigures && religion.keyFigures.length > 0 ? (
-                <div>
+                <EditableSection
+                  client:only="react"
+                  label="Notable Figures"
+                  value={religion.keyFigures.join('\n')}
+                  textarea={true}
+                  onSubmit={(newValue, details) => {
+                    console.log("Notable Figures change submitted:", { newValue, details });
+                  }}
+                  className="mb-3"
+                >
                   <h3 class="text-xl font-semibold mb-3">Notable Figures</h3>
                   <ul class="space-y-2">
                     {religion.keyFigures.map(figure => (
@@ -262,17 +378,37 @@ const jsonLd = {
                       </li>
                     ))}
                   </ul>
-                </div>
+                </EditableSection>
               ) : (
-                <p class="text-gray-700">
-                  {religion.name} is organized through traditional community structures with elders serving as knowledge keepers and spiritual guides. Leadership roles are often determined by age, knowledge, and spiritual connection.
-                </p>
+                <EditableSection
+                  client:only="react"
+                  label="Organization and Key Figures"
+                  value={`${religion.name} is organized through traditional community structures with elders serving as knowledge keepers and spiritual guides. Leadership roles are often determined by age, knowledge, and spiritual connection.`}
+                  textarea={true}
+                  onSubmit={(newValue, details) => {
+                    console.log("Organization and Key Figures change submitted:", { newValue, details });
+                  }}
+                  className="mb-2"
+                >
+                  <p class="text-gray-700">
+                    {religion.name} is organized through traditional community structures with elders serving as knowledge keepers and spiritual guides. Leadership roles are often determined by age, knowledge, and spiritual connection.
+                  </p>
+                </EditableSection>
               )}
             </div>
           </div>
           
           {religion.holyTexts && religion.holyTexts.length > 0 && (
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <EditableSection
+              client:only="react"
+              label="Sacred Texts"
+              value={religion.holyTexts.join('\n')}
+              textarea={true}
+              onSubmit={(newValue, details) => {
+                console.log("Sacred Texts change submitted:", { newValue, details });
+              }}
+              className="mb-8"
+            >
               <div class="flex items-center mb-4">
                 <Book className="h-6 w-6 text-primary-600 mr-2" />
                 <h2 class="text-2xl font-bold">Sacred Texts</h2>
@@ -284,11 +420,20 @@ const jsonLd = {
                   </div>
                 ))}
               </div>
-            </div>
+            </EditableSection>
           )}
           
           {religion.branches && religion.branches.length > 0 && (
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <EditableSection
+              client:only="react"
+              label="Major Branches"
+              value={religion.branches.join('\n')}
+              textarea={true}
+              onSubmit={(newValue, details) => {
+                console.log("Major Branches change submitted:", { newValue, details });
+              }}
+              className="mb-8"
+            >
               <h2 class="text-2xl font-bold mb-4">Major Branches</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {religion.branches.map(branch => (
@@ -296,7 +441,7 @@ const jsonLd = {
                     <h3 class="text-lg font-medium text-gray-900">{branch}</h3>
                   </div>
                 ))}
-              </div>
+              </EditableSection>
             </div>
           )}
         </div>
@@ -405,7 +550,7 @@ const jsonLd = {
     <!-- More from Ancient Section -->
     <div class="bg-gray-50 py-12 border-t border-gray-200">
       <div class="container mx-auto px-4">
-        <h2 class="text-2xl font-bold mb-6">More from {religion.era || 'Ancient'}</h2>
+        <h2 class="text-2xl font-bold mb-6">More from {eraInfo || 'Ancient'}</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sameEraReligions.map(rel => (
             <a href={`/religions/${createSlug(rel.name)}`} class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">

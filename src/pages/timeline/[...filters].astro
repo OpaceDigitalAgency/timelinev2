@@ -5,6 +5,50 @@ import Footer from '../../components/Footer.astro';
 import TimelineFilters from '../../components/TimelineFilters.astro';
 import HorizontalTimeline from '../../components/HorizontalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../../lib/services/religionService';
+import type { BeliefSystem } from '../../types';
+
+export async function getStaticPaths() {
+  // Fetch data needed for generating paths
+  const eras = await fetchEras();
+  const religions = await fetchReligions();
+  
+  // Extract unique values for each filter type
+  const uniqueEras = [...new Set(eras.map(era => era.id))];
+  const uniqueContinents = [...new Set(religions.map(r => r.continent).filter(Boolean))];
+  const uniqueBeliefs: BeliefSystem[] = [
+    'Monotheism', 'Polytheism', 'Nontheism', 'Pantheism', 'Panentheism',
+    'Deism', 'Atheism', 'Agnosticism', 'Dualism', 'Animism', 'Philosophical'
+  ];
+  const uniqueStatuses = ['active', 'extinct', 'evolved'];
+  
+  // Generate paths for common filter combinations
+  const paths = [
+    // Base path with no filters
+    { params: { filters: [] } },
+    
+    // Single era filters
+    ...uniqueEras.map(era => ({
+      params: { filters: ['era', era] }
+    })),
+    
+    // Single belief filters
+    ...uniqueBeliefs.map(belief => ({
+      params: { filters: ['belief', belief] }
+    })),
+    
+    // Single continent filters
+    ...uniqueContinents.map(continent => ({
+      params: { filters: ['continent', continent] }
+    })),
+    
+    // Single status filters
+    ...uniqueStatuses.map(status => ({
+      params: { filters: ['status', status] }
+    }))
+  ];
+  
+  return paths;
+}
 
 const { filters = [] } = Astro.params;
 
