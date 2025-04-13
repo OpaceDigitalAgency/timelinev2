@@ -13,7 +13,7 @@ const eras = await fetchEras();
 const totalCount = await countReligions();
 ---
 
-<Layout title="Vertical Timeline">
+<Layout title="Vertical Timeline of Religious Evolution">
   <Header />
   
   <div class="min-h-screen flex flex-col">
@@ -22,6 +22,11 @@ const totalCount = await countReligions();
       <p class="text-lg text-gray-600 max-w-3xl mb-2">
         Explore how religious beliefs have evolved, connected, and diverged throughout human history with our interactive timeline.
       </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This vertical timeline visualization presents a chronological view of religious traditions from prehistory to modern times.</p>
+        <p>Each entry represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+        <p>The timeline is organized by historical eras, making it easy to see which religions emerged during specific periods.</p>
+      </div>
       <p class="text-sm text-gray-500 mb-6">
         Showing {religions.length} of {totalCount} total religions in the database.
       </p>
@@ -50,6 +55,41 @@ const totalCount = await countReligions();
         <div id="timeline-container" class="mt-4">
           <div id="vertical-view">
             <VerticalTimeline client:only="react" religions={religions} eras={eras} />
+            
+            <!-- SEO-friendly fallback content (hidden visually but available to search engines) -->
+            <div class="sr-only">
+              <h2>Timeline of Religious Traditions by Era</h2>
+              {eras.map(era => {
+                const eraReligions = religions.filter(
+                  religion => religion.foundingYear >= era.startYear && religion.foundingYear <= era.endYear
+                );
+                
+                return eraReligions.length > 0 ? (
+                  <section>
+                    <h3>{era.name} ({era.startYear < 0 ? Math.abs(era.startYear) + ' BCE' : era.startYear + ' CE'} to {era.endYear < 0 ? Math.abs(era.endYear) + ' BCE' : era.endYear + ' CE'})</h3>
+                    <ul>
+                      {eraReligions.map(religion => (
+                        <li>
+                          <h4>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h4>
+                          <p>{religion.summary}</p>
+                          {religion.beliefs && religion.beliefs.length > 0 && (
+                            <div>
+                              <h5>Key Beliefs:</h5>
+                              <ul>
+                                {religion.beliefs.map(belief => (
+                                  <li>{belief}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null;
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -93,6 +133,47 @@ const totalCount = await countReligions();
   
   <Footer />
 </Layout>
+
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Vertical Timeline of Religious Evolution",
+  "description": "Interactive vertical timeline showing the evolution and connections between religious beliefs throughout human history",
+  "keywords": "religion, timeline, history, beliefs, religious evolution, faith, spirituality, world religions, comparative religion",
+  "url": "https://religiontimeline.com/vertical-timeline",
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Prehistoric Era",
+        "description": "Religious beliefs from 100,000 BCE to 3,000 BCE including animism, ancestor worship, and nature worship"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Classical Antiquity",
+        "description": "Religious traditions from 800 BCE to 600 CE including early Christianity, Roman religion, and Greek beliefs"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Middle Ages",
+        "description": "Religious developments from 500 CE to 1300 CE including the spread of Islam, Buddhism, and Christianity"
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": "Modern Era",
+        "description": "Religious movements from 1800 CE to present including new denominations and contemporary spiritual practices"
+      }
+    ]
+  }
+}
+</script>
 
 <script>
   // Timeline zoom and refresh controls

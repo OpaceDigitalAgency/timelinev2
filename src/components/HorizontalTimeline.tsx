@@ -155,36 +155,26 @@ useEffect(() => {
   const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Sort religions by founding year for more consistent visualization
-    // Filter out religions with missing foundingYear (required for timeline placement)
-    // Also filter out duplicate religions by ID to prevent duplicates in the timeline
-    const uniqueReligionIds = new Set();
+    // Ensure each religion appears only once, even if it could belong to multiple eras
+    const processedReligionIds = new Set<string>();
+    const sortedReligions: Religion[] = [];
     
-    // First pass: collect all unique IDs
-    filteredReligions.forEach(religion => {
-      uniqueReligionIds.add(religion.id);
+    // First sort all religions by founding year
+    const allSortedReligions = [...filteredReligions]
+      .filter(r => typeof r.foundingYear === 'number' && !isNaN(r.foundingYear))
+      .sort((a, b) => a.foundingYear - b.foundingYear);
+    
+    // Then add each religion only once, based on its primary era assignment
+    allSortedReligions.forEach(religion => {
+      if (!processedReligionIds.has(religion.id)) {
+        sortedReligions.push(religion);
+        processedReligionIds.add(religion.id);
+      } else {
+        console.log(`Skipping duplicate religion: ${religion.name} (${religion.id})`);
+      }
     });
     
-    console.log(`Found ${uniqueReligionIds.size} unique religions out of ${filteredReligions.length} total`);
-    
-    // Second pass: filter and sort
-    const sortedReligions = [...filteredReligions]
-      .filter(r => {
-        // Filter out religions with missing foundingYear
-        if (typeof r.foundingYear !== 'number' || isNaN(r.foundingYear)) {
-          console.log(`Filtering out religion with invalid founding year: ${r.name}`);
-          return false;
-        }
-        
-        // Keep only one instance of each religion by ID
-        if (uniqueReligionIds.has(r.id)) {
-          uniqueReligionIds.delete(r.id); // Remove from set so next occurrence is filtered out
-          return true;
-        }
-        
-        return false;
-      })
-      .sort((a, b) => a.foundingYear - b.foundingYear);
+    console.log(`Displaying ${sortedReligions.length} unique religions out of ${filteredReligions.length} total in horizontal timeline`);
 
     // Find min and max years for scale with padding to prevent edge crowding
     // Support negative foundingYear (BCE) for prehistoric religions

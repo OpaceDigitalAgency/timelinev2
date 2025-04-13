@@ -70,33 +70,24 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
     setFilteredReligions(initialReligions);
   }, [initialReligions]);
   
-  // Sort religions by foundingYear and remove duplicates
-  const uniqueReligionIds = new Set();
+  // Ensure each religion appears only once, even if it could belong to multiple eras
+  const processedReligionIds = new Set<string>();
+  const sortedReligions: Religion[] = [];
   
-  // First pass: collect all unique IDs
-  filteredReligions.forEach(religion => {
-    uniqueReligionIds.add(religion.id);
+  // First sort all religions by founding year
+  const allSortedReligions = [...filteredReligions]
+    .filter(r => typeof r.foundingYear === 'number' && !isNaN(r.foundingYear))
+    .sort((a, b) => a.foundingYear - b.foundingYear);
+  
+  // Then add each religion only once, based on its primary era assignment
+  allSortedReligions.forEach(religion => {
+    if (!processedReligionIds.has(religion.id)) {
+      sortedReligions.push(religion);
+      processedReligionIds.add(religion.id);
+    }
   });
   
-  console.log(`Found ${uniqueReligionIds.size} unique religions out of ${filteredReligions.length} total in vertical timeline`);
-  
-  // Second pass: filter and sort
-  const sortedReligions = [...filteredReligions]
-    .filter(r => {
-      // Filter out religions with missing foundingYear
-      if (typeof r.foundingYear !== 'number' || isNaN(r.foundingYear)) {
-        return false;
-      }
-      
-      // Keep only one instance of each religion by ID
-      if (uniqueReligionIds.has(r.id)) {
-        uniqueReligionIds.delete(r.id); // Remove from set so next occurrence is filtered out
-        return true;
-      }
-      
-      return false;
-    })
-    .sort((a, b) => a.foundingYear - b.foundingYear);
+  console.log(`Displaying ${sortedReligions.length} unique religions out of ${filteredReligions.length} total in vertical timeline`);
   
   // Group religions by era
   const religionsByEra = eras.map(era => {
