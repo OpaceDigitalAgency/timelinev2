@@ -16,7 +16,8 @@ export async function getStaticPaths() {
   )];
   
   return origins.map(origin => {
-    const slug = origin.toLowerCase().replace(/\s+/g, '-');
+    // Handle continents with slashes by replacing them with hyphens
+    const slug = origin.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
     return {
       params: { slug },
       props: { origin }
@@ -33,10 +34,16 @@ const allEras = await fetchEras();
 const totalCount = await countReligions();
 
 // Filter religions by origin/continent
-const religions = allReligions.filter(r => 
-  r.continent?.toLowerCase() === origin.toLowerCase() || 
-  r.originCountry?.toLowerCase().includes(origin.toLowerCase())
-);
+const religions = allReligions.filter(r => {
+  // Handle the case where the continent has slashes in the database
+  // but hyphens in the URL
+  const continentLower = r.continent?.toLowerCase();
+  const originLower = origin.toLowerCase();
+  
+  return continentLower === originLower ||
+         continentLower?.replace(/\//g, '-') === originLower ||
+         r.originCountry?.toLowerCase().includes(originLower);
+});
 
 // SEO meta
 const pageTitle = `${origin} Religious Traditions - Timeline`;
