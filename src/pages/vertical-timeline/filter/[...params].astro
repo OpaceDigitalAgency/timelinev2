@@ -1,43 +1,100 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import TimelineFilters from '../components/TimelineFilters.astro';
-import VerticalTimeline from '../components/VerticalTimeline';
-import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import TimelineFilters from '../../../components/TimelineFilters.astro';
+import VerticalTimeline from '../../../components/VerticalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-// Check for query parameters and redirect to filter page if present
-const url = new URL(Astro.request.url);
-if (url.searchParams.toString()) {
-  const segments = [];
-  
-  // Convert query parameters to path segments
-  url.searchParams.getAll('era').forEach(v => {
-    segments.push(`era-${v}`);
-  });
-  
-  url.searchParams.getAll('continent').forEach(v => {
-    segments.push(`continent-${encodeURIComponent(v)}`);
-  });
-  
-  url.searchParams.getAll('belief').forEach(v => {
-    segments.push(`belief-${encodeURIComponent(v)}`);
-  });
-  
-  url.searchParams.getAll('status').forEach(v => {
-    segments.push(`status-${v}`);
-  });
-  
-  if (segments.length > 0) {
-    return Astro.redirect(`/vertical-timeline/filter/${segments.join('/')}`);
-  }
+export function getStaticPaths() {
+  return [
+    { params: { params: undefined } },
+    // We'll generate the rest dynamically
+  ];
 }
 
+// Get the filter parameters from the URL
+const { params } = Astro.params;
+
+// Parse the filter parameters
+function parseFilterParams(paramsString) {
+  const filterObj = {
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: [],
+  };
+  
+  if (!paramsString) return filterObj;
+  
+  // Split by slash and process segments
+  const segments = paramsString.split('/').filter(Boolean);
+  
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const [type, value] = segment.split('-');
+    
+    if (!value) continue;
+    
+    switch (type) {
+      case 'era':
+        filterObj.eras.push(value);
+        break;
+      case 'continent':
+        filterObj.continents.push(decodeURIComponent(value));
+        break;
+      case 'belief':
+        filterObj.beliefs.push(decodeURIComponent(value));
+        break;
+      case 'status':
+        filterObj.statuses.push(value);
+        break;
+    }
+  }
+  
+  return filterObj;
+}
+
+const activeFilters = parseFilterParams(params);
+
 // Get religions and eras data
-const religions = await fetchReligions();
+const allReligions = await fetchReligions();
 const eras = await fetchEras();
 const totalCount = await countReligions();
+
+// Filter religions based on activeFilters
+function religionMatchesFilters(religion, filters) {
+  // Check each filter type
+  if (filters.eras.length > 0) {
+    const match = filters.eras.includes(String(religion.era));
+    if (!match) return false;
+  }
+  
+  if (filters.continents.length > 0) {
+    const match = filters.continents.some(c =>
+      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
+      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.beliefs.length > 0) {
+    const match = filters.beliefs.some(b =>
+      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.statuses.length > 0) {
+    const match = filters.statuses.includes(religion.status);
+    if (!match) return false;
+  }
+  
+  return true;
+}
+
+const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
 
 // Helper function to format year display
 const formatYear = (year: number) => year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
@@ -49,9 +106,28 @@ const getReligionsForEra = (era: any) => {
     religion.foundingYear <= era.endYear
   );
 };
+
+// SEO meta/canonical
+function filtersToTitle(filters) {
+  let parts = [];
+  if (filters.eras.length) parts.push('Era: ' + filters.eras.join(', '));
+  if (filters.continents.length) parts.push('Continent: ' + filters.continents.join(', '));
+  if (filters.beliefs.length) parts.push('Belief: ' + filters.beliefs.join(', '));
+  if (filters.statuses.length) parts.push('Status: ' + filters.statuses.join(', '));
+  return parts.length ? parts.join(' | ') : 'Vertical Timeline';
+}
+
+const pageTitle = filtersToTitle(activeFilters) + ' - Religious Timeline';
+const canonicalUrl = new URL(params ? `/vertical-timeline/filter/${params}` : '/vertical-timeline', Astro.site || 'https://evolution-of-religion.netlify.app').href;
 ---
 
-<Layout title="Vertical Timeline of Religious Evolution">
+<Layout title={pageTitle}>
+  <head>
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={pageTitle} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
   <Header />
   
   <div class="min-h-screen flex flex-col">
@@ -170,47 +246,6 @@ const getReligionsForEra = (era: any) => {
   
   <Footer />
 </Layout>
-
-<!-- Structured Data for SEO -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "Vertical Timeline of Religious Evolution",
-  "description": "Interactive vertical timeline showing the evolution and connections between religious beliefs throughout human history",
-  "keywords": "religion, timeline, history, beliefs, religious evolution, faith, spirituality, world religions, comparative religion",
-  "url": "https://religiontimeline.com/vertical-timeline",
-  "mainEntity": {
-    "@type": "ItemList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Prehistoric Era",
-        "description": "Religious beliefs from 100,000 BCE to 3,000 BCE including animism, ancestor worship, and nature worship"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Classical Antiquity",
-        "description": "Religious traditions from 800 BCE to 600 CE including early Christianity, Roman religion, and Greek beliefs"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": "Middle Ages",
-        "description": "Religious developments from 500 CE to 1300 CE including the spread of Islam, Buddhism, and Christianity"
-      },
-      {
-        "@type": "ListItem",
-        "position": 4,
-        "name": "Modern Era",
-        "description": "Religious movements from 1800 CE to present including new denominations and contemporary spiritual practices"
-      }
-    ]
-  }
-}
-</script>
 
 <script>
   // Timeline zoom and refresh controls

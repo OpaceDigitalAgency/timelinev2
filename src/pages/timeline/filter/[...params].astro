@@ -1,0 +1,223 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import TimelineFilters from '../../../components/TimelineFilters.astro';
+import HorizontalTimeline from '../../../components/HorizontalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
+import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+
+export function getStaticPaths() {
+  return [
+    { params: { params: undefined } },
+    // We'll generate the rest dynamically
+  ];
+}
+
+// Get the filter parameters from the URL
+const { params } = Astro.params;
+
+// Parse the filter parameters
+function parseFilterParams(paramsString) {
+  const filterObj = {
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: [],
+  };
+  
+  if (!paramsString) return filterObj;
+  
+  // Split by slash and process segments
+  const segments = paramsString.split('/').filter(Boolean);
+  
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const [type, value] = segment.split('-');
+    
+    if (!value) continue;
+    
+    switch (type) {
+      case 'era':
+        filterObj.eras.push(value);
+        break;
+      case 'continent':
+        filterObj.continents.push(decodeURIComponent(value));
+        break;
+      case 'belief':
+        filterObj.beliefs.push(decodeURIComponent(value));
+        break;
+      case 'status':
+        filterObj.statuses.push(value);
+        break;
+    }
+  }
+  
+  return filterObj;
+}
+
+const activeFilters = parseFilterParams(params);
+
+// Get religions and eras data
+const allReligions = await fetchReligions();
+const eras = await fetchEras();
+const totalCount = await countReligions();
+
+// Filter religions based on activeFilters
+function religionMatchesFilters(religion, filters) {
+  // Check each filter type
+  if (filters.eras.length > 0) {
+    const match = filters.eras.includes(String(religion.era));
+    if (!match) return false;
+  }
+  
+  if (filters.continents.length > 0) {
+    const match = filters.continents.some(c =>
+      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
+      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.beliefs.length > 0) {
+    const match = filters.beliefs.some(b =>
+      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
+    );
+    if (!match) return false;
+  }
+  
+  if (filters.statuses.length > 0) {
+    const match = filters.statuses.includes(religion.status);
+    if (!match) return false;
+  }
+  
+  return true;
+}
+
+const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
+
+// SEO meta/canonical
+function filtersToTitle(filters) {
+  let parts = [];
+  if (filters.eras.length) parts.push('Era: ' + filters.eras.join(', '));
+  if (filters.continents.length) parts.push('Continent: ' + filters.continents.join(', '));
+  if (filters.beliefs.length) parts.push('Belief: ' + filters.beliefs.join(', '));
+  if (filters.statuses.length) parts.push('Status: ' + filters.statuses.join(', '));
+  return parts.length ? parts.join(' | ') : 'Timeline';
+}
+
+const pageTitle = filtersToTitle(activeFilters) + ' - Religious Timeline';
+const canonicalUrl = new URL(params ? `/timeline/filter/${params}` : '/timeline', Astro.site || 'https://evolution-of-religion.netlify.app').href;
+---
+
+<Layout title={pageTitle}>
+  <head>
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={pageTitle} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <Header />
+  
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">The Evolution of Religious Beliefs</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        Explore how religious beliefs have evolved, connected, and diverged throughout human history with our interactive timeline.
+      </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This horizontal timeline visualization presents a chronological view of religious traditions from prehistory to modern times.</p>
+        <p>Each node represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+        <p>Connections between nodes show historical relationships and influences between different religious traditions.</p>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {religions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+    
+    <TimelineFilters currentView="horizontal" />
+    
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <!-- Timeline Controls -->
+        <div class="flex justify-end mb-4">
+          <div class="flex space-x-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1">
+            <button id="zoom-in-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Zoom In">
+              <ZoomIn className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <button id="zoom-out-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Zoom Out">
+              <ZoomOut className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <button id="refresh-timeline-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Refresh Timeline">
+              <RefreshCw className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+          </div>
+        </div>
+        
+        <!-- Horizontal Timeline View -->
+        <div id="timeline-container" class="mt-4">
+          <div id="horizontal-view">
+            <HorizontalTimeline client:only="react" religions={religions} eras={eras} />
+            <div class="sr-only">
+              <h2>Timeline of Religious Traditions</h2>
+              <ul>
+                {religions.map(religion => {
+                  return (
+                    <li>
+                      <h3>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h3>
+                      <p>{religion.summary}</p>
+                      {religion.beliefs && religion.beliefs.length > 0 && (
+                        <div>
+                          <h4>Key Beliefs:</h4>
+                          <ul>
+                            {religion.beliefs.map(belief => (
+                              <li>{belief}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script>
+  // Timeline zoom and refresh controls
+  const zoomInBtn = document.getElementById('zoom-in-btn');
+  const zoomOutBtn = document.getElementById('zoom-out-btn');
+  const refreshTimelineBtn = document.getElementById('refresh-timeline-btn');
+  
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-zoom', { detail: 'in' }));
+    });
+  }
+  
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-zoom', { detail: 'out' }));
+    });
+  }
+  
+  if (refreshTimelineBtn) {
+    refreshTimelineBtn.addEventListener('click', () => {
+      refreshTimelineBtn.classList.add('animate-spin');
+      document.dispatchEvent(new CustomEvent('timeline-refresh'));
+      
+      // Remove spinning animation after a delay
+      setTimeout(() => {
+        refreshTimelineBtn.classList.remove('animate-spin');
+      }, 1000);
+    });
+  }
+</script>

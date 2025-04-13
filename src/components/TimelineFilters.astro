@@ -165,7 +165,7 @@ const { currentView = 'horizontal' } = Astro.props;
 
   // --- SEO URL FILTER LOGIC ---
 
-  // Parse filters from URL query parameters
+  // Parse filters from SEO-friendly URL path
   function getFiltersFromPath() {
     const filters = {
       eras: [],
@@ -175,36 +175,52 @@ const { currentView = 'horizontal' } = Astro.props;
       searchTerm: ''
     };
     
-    // Get query parameters
-    const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
     
-    // Parse era parameters
-    params.getAll('era').forEach(value => {
-      if (value && !filters.eras.includes(value)) {
-        filters.eras.push(value);
-      }
-    });
+    // Check if we're on a filter page
+    if (!path.includes('/filter/')) {
+      return filters;
+    }
     
-    // Parse continent parameters
-    params.getAll('continent').forEach(value => {
-      if (value && !filters.continents.includes(value)) {
-        filters.continents.push(value);
-      }
-    });
+    // Extract the filter segments
+    const filterPart = path.split('/filter/')[1];
+    if (!filterPart) {
+      return filters;
+    }
     
-    // Parse belief parameters
-    params.getAll('belief').forEach(value => {
-      if (value && !filters.beliefs.includes(value)) {
-        filters.beliefs.push(value);
-      }
-    });
+    // Split by slash and process segments
+    const segments = filterPart.split('/').filter(Boolean);
     
-    // Parse status parameters
-    params.getAll('status').forEach(value => {
-      if (value && !filters.statuses.includes(value)) {
-        filters.statuses.push(value);
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const [type, ...valueParts] = segment.split('-');
+      const value = valueParts.join('-'); // Rejoin in case value contains hyphens
+      
+      if (!value) continue;
+      
+      switch (type) {
+        case 'era':
+          if (!filters.eras.includes(value)) {
+            filters.eras.push(value);
+          }
+          break;
+        case 'continent':
+          if (!filters.continents.includes(decodeURIComponent(value))) {
+            filters.continents.push(decodeURIComponent(value));
+          }
+          break;
+        case 'belief':
+          if (!filters.beliefs.includes(decodeURIComponent(value))) {
+            filters.beliefs.push(decodeURIComponent(value));
+          }
+          break;
+        case 'status':
+          if (!filters.statuses.includes(value)) {
+            filters.statuses.push(value);
+          }
+          break;
       }
-    });
+    }
     
     return filters;
   }
@@ -225,7 +241,7 @@ const { currentView = 'horizontal' } = Astro.props;
     });
   }
 
-  // Build path with query parameters from filters
+  // Build SEO-friendly path from filters
   function buildPathFromFilters(filters) {
     // Determine base path based on current view
     const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
@@ -240,26 +256,30 @@ const { currentView = 'horizontal' } = Astro.props;
       return basePath;
     }
     
-    // Build query parameters
-    const params = new URLSearchParams();
+    // Build SEO-friendly path segments
+    const segments = [];
     
-    if (filters.eras.length) {
-      filters.eras.forEach(v => params.append('era', v));
-    }
+    // Add era filters
+    filters.eras.forEach(v => {
+      segments.push(`era-${v}`);
+    });
     
-    if (filters.continents.length) {
-      filters.continents.forEach(v => params.append('continent', v));
-    }
+    // Add continent filters
+    filters.continents.forEach(v => {
+      segments.push(`continent-${encodeURIComponent(v)}`);
+    });
     
-    if (filters.beliefs.length) {
-      filters.beliefs.forEach(v => params.append('belief', v));
-    }
+    // Add belief filters
+    filters.beliefs.forEach(v => {
+      segments.push(`belief-${encodeURIComponent(v)}`);
+    });
     
-    if (filters.statuses.length) {
-      filters.statuses.forEach(v => params.append('status', v));
-    }
+    // Add status filters
+    filters.statuses.forEach(v => {
+      segments.push(`status-${v}`);
+    });
     
-    return `${basePath}?${params.toString()}`;
+    return `${basePath}/filter/${segments.join('/')}`;
   }
 
   // Filtering functionality
@@ -367,7 +387,9 @@ const { currentView = 'horizontal' } = Astro.props;
 
     // Update URL to base timeline (preserving the current view)
     const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
-    if (window.location.pathname !== basePath || window.location.search !== '') {
+    
+    // Check if we're on a filter page or have query parameters
+    if (window.location.pathname.includes('/filter/') || window.location.search !== '') {
       window.location.href = basePath;
     }
   }

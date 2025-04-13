@@ -7,58 +7,37 @@ import HorizontalTimeline from '../components/HorizontalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-// Get query parameters
+// Check for query parameters and redirect to filter page if present
 const url = new URL(Astro.request.url);
-const eraParams = url.searchParams.getAll('era');
-const continentParams = url.searchParams.getAll('continent');
-const beliefParams = url.searchParams.getAll('belief');
-const statusParams = url.searchParams.getAll('status');
-
-// Create filter object
-const activeFilters = {
-  eras: eraParams,
-  continents: continentParams,
-  beliefs: beliefParams,
-  statuses: statusParams
-};
-
-// Get religions and eras data
-const allReligions = await fetchReligions();
-const eras = await fetchEras();
-const totalCount = await countReligions();
-
-// Filter religions based on activeFilters
-function religionMatchesFilters(religion, filters) {
-  // Check each filter type
-  if (filters.eras.length > 0) {
-    const match = filters.eras.includes(String(religion.era));
-    if (!match) return false;
-  }
+if (url.searchParams.toString()) {
+  const segments = [];
   
-  if (filters.continents.length > 0) {
-    const match = filters.continents.some(c =>
-      religion.continent?.toLowerCase().includes(c.toLowerCase()) ||
-      religion.originCountry?.toLowerCase().includes(c.toLowerCase())
-    );
-    if (!match) return false;
-  }
+  // Convert query parameters to path segments
+  url.searchParams.getAll('era').forEach(v => {
+    segments.push(`era-${v}`);
+  });
   
-  if (filters.beliefs.length > 0) {
-    const match = filters.beliefs.some(b =>
-      religion.beliefs?.some(belief => belief.toLowerCase().includes(b.toLowerCase()))
-    );
-    if (!match) return false;
-  }
+  url.searchParams.getAll('continent').forEach(v => {
+    segments.push(`continent-${encodeURIComponent(v)}`);
+  });
   
-  if (filters.statuses.length > 0) {
-    const match = filters.statuses.includes(religion.status);
-    if (!match) return false;
-  }
+  url.searchParams.getAll('belief').forEach(v => {
+    segments.push(`belief-${encodeURIComponent(v)}`);
+  });
   
-  return true;
+  url.searchParams.getAll('status').forEach(v => {
+    segments.push(`status-${v}`);
+  });
+  
+  if (segments.length > 0) {
+    return Astro.redirect(`/timeline/filter/${segments.join('/')}`);
+  }
 }
 
-const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
+// Get religions and eras data
+const religions = await fetchReligions();
+const eras = await fetchEras();
+const totalCount = await countReligions();
 ---
 
 <Layout title="Horizontal Timeline of Religious Evolution">
