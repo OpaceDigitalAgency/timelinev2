@@ -2,11 +2,11 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { religions } from '../data/mockData';
-
-// Get religion ID from query params (if editing an existing religion)
-const { religion: religionId } = Astro.url.searchParams;
-const religion = religionId ? religions.find(r => r.id === religionId) : null;
+/*
+  TODO: To support editing existing religions, fetch the religion by ID from Supabase using fetchReligionById.
+  For now, the form only supports suggesting new religions.
+*/
+const religion = null;
 ---
 
 <Layout title={religion ? `Suggest Edits for ${religion.name}` : "Suggest New Religion"}>

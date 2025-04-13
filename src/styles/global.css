@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://rsms.me/inter/inter.css');
+
+/* Add font imports */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Add font imports */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
-@import url('https://rsms.me/inter/inter.css');
 
 @layer base {
   html {
