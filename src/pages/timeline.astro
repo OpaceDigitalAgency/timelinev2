@@ -1,0 +1,133 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import TimelineFilters from '../components/TimelineFilters.astro';
+import HorizontalTimeline from '../components/HorizontalTimeline';
+import VerticalTimeline from '../components/VerticalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
+
+// Get religions and eras data
+const religions = await fetchReligions();
+const eras = await fetchEras();
+const totalCount = await countReligions();
+---
+
+<Layout title="Interactive Timeline">
+  <Header />
+  
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">The Evolution of Religious Beliefs</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        Explore how religious beliefs have evolved, connected, and diverged throughout human history with our interactive timeline.
+      </p>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {religions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+    
+    <TimelineFilters />
+    
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <!-- Timeline Toggle Views -->
+        <div id="timeline-container" class="mt-4">
+          <div id="horizontal-timeline" class="block">
+            <HorizontalTimeline client:load religions={religions} eras={eras} />
+          </div>
+          <div id="vertical-timeline" class="hidden">
+            <VerticalTimeline client:load religions={religions} eras={eras} />
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <div class="bg-gray-100 py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">Understanding the Timeline</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-green-500"></div>
+            <h3 class="font-semibold">Active Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Religious traditions that continue to be practiced in the present day, with active communities and followers.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-gray-400"></div>
+            <h3 class="font-semibold">Extinct Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Belief systems that no longer have active practitioners, though their historical impact may still be significant.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-amber-500"></div>
+            <h3 class="font-semibold">Evolved Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Ancient beliefs that have transformed significantly into newer religious movements while maintaining some continuity.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <Footer />
+</Layout>
+
+<script>
+  // Handle timeline view switching
+  const horizontalTimeline = document.getElementById('horizontal-timeline');
+  const verticalTimeline = document.getElementById('vertical-timeline');
+  
+  document.addEventListener('timeline-view-change', (e: Event) => {
+    const customEvent = e as CustomEvent;
+    if (customEvent.detail === 'horizontal') {
+      horizontalTimeline?.classList.remove('hidden');
+      horizontalTimeline?.classList.add('block');
+      verticalTimeline?.classList.add('hidden');
+      verticalTimeline?.classList.remove('block');
+    } else if (customEvent.detail === 'vertical') {
+      horizontalTimeline?.classList.add('hidden');
+      horizontalTimeline?.classList.remove('block');
+      verticalTimeline?.classList.remove('hidden');
+      verticalTimeline?.classList.add('block');
+    }
+  });
+  
+  // Check device width and set default timeline view
+  const checkWidth = () => {
+    if (window.innerWidth < 768) {
+      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'vertical' }));
+    } else {
+      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'horizontal' }));
+    }
+  };
+  
+  // Run on page load
+  checkWidth();
+  
+  // Also check when window resizes
+  window.addEventListener('resize', checkWidth);
+</script>
+
+<style>
+  /* Timeline specific styles */
+  .timeline-svg text {
+    user-select: none;
+  }
+  
+  @media (max-width: 768px) {
+    #horizontal-timeline {
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+</style>

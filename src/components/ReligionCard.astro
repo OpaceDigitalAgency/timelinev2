@@ -1,0 +1,75 @@
+---
+import { Calendar, Users, Globe, Bookmark } from 'lucide-react';
+import type { Religion } from '../types';
+
+interface Props {
+  religion: Religion;
+}
+
+const { religion } = Astro.props;
+
+function formatYear(year: number): string {
+  return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+}
+
+function formatPopulation(population?: number): string {
+  if (!population) return 'Unknown';
+  if (population >= 1000000000) return `${(population / 1000000000).toFixed(1)}B`;
+  if (population >= 1000000) return `${(population / 1000000).toFixed(1)}M`;
+  if (population >= 1000) return `${(population / 1000).toFixed(1)}K`;
+  return population.toString();
+}
+
+const statusClasses = {
+  'active': 'bg-green-100 text-green-800',
+  'extinct': 'bg-gray-100 text-gray-800',
+  'evolved': 'bg-amber-100 text-amber-800'
+};
+---
+
+<div class="timeline-card group relative" data-id={religion.id} data-era-id={religion.era} data-continent={religion.continent} data-beliefs={religion.beliefs.join(',')} data-status={religion.status}>
+  <div class="absolute top-2 right-2 flex space-x-1">
+    <span class={`religion-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses[religion.status]}`} data-status={religion.status}>
+      {religion.status === 'active' ? 'Active' : religion.status === 'extinct' ? 'Extinct' : 'Evolved'}
+    </span>
+  </div>
+  
+  <h3 class="text-xl font-bold mb-2 pr-20">{religion.name}</h3>
+  
+  <p class="text-gray-600 text-sm mb-3">{religion.summary}</p>
+  
+  <div class="flex flex-wrap gap-2 text-xs text-gray-500 mb-4">
+    <div class="flex items-center">
+      <Calendar className="h-3 w-3 mr-1" />
+      <span>{formatYear(religion.foundingYear)}</span>
+    </div>
+    {religion.approxFollowers && (
+      <div class="flex items-center">
+        <Users className="h-3 w-3 mr-1" />
+        <span>{formatPopulation(religion.approxFollowers)} followers</span>
+      </div>
+    )}
+    <div class="flex items-center religion-continent">
+      <Globe className="h-3 w-3 mr-1" />
+      <span>{religion.originCountry}</span>
+    </div>
+    <div class="religion-era hidden" data-era-id={religion.era}></div>
+  </div>
+  
+  {religion.beliefs.length > 0 && (
+    <div class="flex flex-wrap gap-1 mb-4">
+      {religion.beliefs.map(belief => (
+        <span class="belief-tag bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">{belief}</span>
+      ))}
+    </div>
+  )}
+  
+  <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
+    <a href={`/religions/${religion.id}`} class="text-primary-600 text-sm font-medium hover:text-primary-800 transition-colors">
+      View Details
+    </a>
+    <button class="text-gray-400 hover:text-primary-600 transition-colors">
+      <Bookmark className="h-4 w-4" />
+    </button>
+  </div>
+</div>

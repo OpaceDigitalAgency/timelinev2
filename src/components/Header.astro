@@ -1,0 +1,64 @@
+---
+import { BookOpen, Search, Menu, X } from 'lucide-react';
+---
+
+<header class="bg-white shadow-sm sticky top-0 z-50">
+  <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center space-x-2">
+      <BookOpen className="h-6 w-6 text-primary-600" />
+      <span class="font-heading font-bold text-xl">Evolution of Religion</span>
+    </a>
+    
+    <div class="hidden md:flex items-center space-x-6">
+      <nav class="flex items-center space-x-6">
+        <a href="/" class="text-gray-700 hover:text-primary-600 transition-colors">Home</a>
+        <a href="/timeline" class="text-gray-700 hover:text-primary-600 transition-colors">Timeline</a>
+        <a href="/religions" class="text-gray-700 hover:text-primary-600 transition-colors">Religions</a>
+        <a href="/about" class="text-gray-700 hover:text-primary-600 transition-colors">About</a>
+      </nav>
+      
+      <div class="flex items-center space-x-3">
+        <button class="text-gray-700 hover:text-primary-600 transition-colors">
+          <Search className="h-5 w-5" />
+        </button>
+        <a href="/login" class="btn btn-secondary">Sign In</a>
+        <a href="/suggest" class="btn btn-primary">Suggest an Edit</a>
+      </div>
+    </div>
+    
+    <button class="md:hidden text-gray-700" id="mobile-menu-toggle">
+      <Menu className="h-6 w-6" id="menu-open" />
+      <X className="h-6 w-6 hidden" id="menu-close" />
+    </button>
+  </div>
+  
+  <!-- Mobile menu -->
+  <div class="md:hidden hidden bg-white" id="mobile-menu">
+    <nav class="px-4 py-3 space-y-3">
+      <a href="/" class="block text-gray-700 hover:text-primary-600 transition-colors py-2">Home</a>
+      <a href="/timeline" class="block text-gray-700 hover:text-primary-600 transition-colors py-2">Timeline</a>
+      <a href="/religions" class="block text-gray-700 hover:text-primary-600 transition-colors py-2">Religions</a>
+      <a href="/about" class="block text-gray-700 hover:text-primary-600 transition-colors py-2">About</a>
+      <div class="pt-2 border-t border-gray-200 flex flex-col space-y-3">
+        <a href="/login" class="btn btn-secondary w-full">Sign In</a>
+        <a href="/suggest" class="btn btn-primary w-full">Suggest an Edit</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  // Mobile menu toggle
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const menuOpen = document.getElementById('menu-open');
+  const menuClose = document.getElementById('menu-close');
+  
+  if (mobileMenuToggle && mobileMenu && menuOpen && menuClose) {
+    mobileMenuToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+      menuOpen.classList.toggle('hidden');
+      menuClose.classList.toggle('hidden');
+    });
+  }
+</script>

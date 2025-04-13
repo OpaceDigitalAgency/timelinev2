@@ -1,0 +1,294 @@
+---
+import { FilterIcon, X } from 'lucide-react';
+import { fetchEras } from '../lib/services/religionService';
+
+// Fetch eras for filtering
+const eras = await fetchEras();
+const allBeliefs = ['Monotheism', 'Polytheism', 'Nontheism', 'Pantheism', 'Dualism', 'Animism', 'Philosophical'];
+const allContinents = ['Asia', 'Africa', 'Europe', 'North America', 'South America', 'Australia/Oceania', 'Middle East (West Asia)', 'East Asia', 'South Asia', 'Global'];
+const allStatuses = ['active', 'extinct', 'evolved'];
+---
+
+<div class="bg-white shadow-sm sticky top-16 z-40">
+  <div class="container mx-auto px-4 py-2">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <FilterIcon className="h-4 w-4 text-gray-500" />
+        <span class="text-sm font-medium text-gray-700">Filter by:</span>
+      </div>
+      
+      <div class="flex flex-wrap gap-2 items-center">
+        <div class="relative group">
+          <button class="filter-pill" id="era-filter">
+            Era
+            <svg class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div class="hidden absolute top-full left-0 mt-1 bg-white shadow-lg rounded-md p-2 z-10 min-w-[200px] border border-gray-200" id="era-dropdown">
+            <div class="space-y-1">
+              {eras.map(era => (
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input type="checkbox" class="rounded text-primary-600 focus:ring-primary-500" value={era.id} name="era-filter" data-era-id={era.id} />
+                  <span>{era.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div class="relative group">
+          <button class="filter-pill" id="origin-filter">
+            Origin
+            <svg class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div class="hidden absolute top-full left-0 mt-1 bg-white shadow-lg rounded-md p-2 z-10 min-w-[200px] border border-gray-200" id="origin-dropdown">
+            <div class="space-y-1">
+              {allContinents.map(continent => (
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input type="checkbox" class="rounded text-primary-600 focus:ring-primary-500" value={continent} name="continent-filter" data-continent={continent} />
+                  <span>{continent}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div class="relative group">
+          <button class="filter-pill" id="beliefs-filter">
+            Beliefs
+            <svg class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div class="hidden absolute top-full left-0 mt-1 bg-white shadow-lg rounded-md p-2 z-10 min-w-[200px] border border-gray-200" id="beliefs-dropdown">
+            <div class="space-y-1">
+              {allBeliefs.map(belief => (
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input type="checkbox" class="rounded text-primary-600 focus:ring-primary-500" value={belief.toLowerCase()} name="beliefs-filter" data-belief={belief} />
+                  <span>{belief}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div class="relative group">
+          <button class="filter-pill" id="status-filter">
+            Status
+            <svg class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div class="hidden absolute top-full left-0 mt-1 bg-white shadow-lg rounded-md p-2 z-10 min-w-[200px] border border-gray-200" id="status-dropdown">
+            <div class="space-y-1">
+              {allStatuses.map(status => (
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                  <input type="checkbox" class="rounded text-primary-600 focus:ring-primary-500" value={status} name="status-filter" data-status={status} />
+                  <span class="capitalize">{status}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div class="relative">
+          <input 
+            type="text" 
+            id="search-input"
+            placeholder="Search religions..." 
+            class="px-3 py-1 rounded-full text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+        
+        <button id="clear-filters" class="filter-pill flex items-center space-x-1 bg-primary-100 text-primary-800 hover:bg-primary-200">
+          <X className="h-3 w-3" />
+          <span>Clear All</span>
+        </button>
+      </div>
+      
+      <div class="flex items-center space-x-2 ml-auto">
+        <span class="text-sm text-gray-700">View:</span>
+        <button class="p-1 rounded border border-gray-300 bg-primary-100 border-primary-300" id="horizontal-view-toggle" title="Horizontal Timeline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <button class="p-1 rounded border border-gray-300 bg-white hover:bg-gray-50" id="vertical-view-toggle" title="Vertical Timeline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // For toggling dropdowns
+  const dropdownToggles = {
+    'era-filter': 'era-dropdown',
+    'origin-filter': 'origin-dropdown',
+    'beliefs-filter': 'beliefs-dropdown',
+    'status-filter': 'status-dropdown'
+  };
+  
+  Object.entries(dropdownToggles).forEach(([toggleId, dropdownId]) => {
+    const toggle = document.getElementById(toggleId);
+    const dropdown = document.getElementById(dropdownId);
+    
+    if (toggle && dropdown) {
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+    }
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    Object.values(dropdownToggles).forEach(dropdownId => {
+      const dropdown = document.getElementById(dropdownId);
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+  
+  // Timeline view toggle
+  const horizontalViewToggle = document.getElementById('horizontal-view-toggle');
+  const verticalViewToggle = document.getElementById('vertical-view-toggle');
+  
+  if (horizontalViewToggle && verticalViewToggle) {
+    horizontalViewToggle.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'horizontal' }));
+      horizontalViewToggle.classList.add('bg-primary-100', 'border-primary-300');
+      verticalViewToggle.classList.remove('bg-primary-100', 'border-primary-300');
+    });
+    
+    verticalViewToggle.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'vertical' }));
+      verticalViewToggle.classList.add('bg-primary-100', 'border-primary-300');
+      horizontalViewToggle.classList.remove('bg-primary-100', 'border-primary-300');
+    });
+  }
+
+  // Filtering functionality
+  let activeFilters = {
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: [],
+    searchTerm: ''
+  };
+
+  // Setup filter change handlers
+  document.querySelectorAll('input[name="era-filter"]').forEach(checkbox => {
+    checkbox.addEventListener('change', handleFilterChange);
+  });
+
+  document.querySelectorAll('input[name="continent-filter"]').forEach(checkbox => {
+    checkbox.addEventListener('change', handleFilterChange);
+  });
+
+  document.querySelectorAll('input[name="beliefs-filter"]').forEach(checkbox => {
+    checkbox.addEventListener('change', handleFilterChange);
+  });
+
+  document.querySelectorAll('input[name="status-filter"]').forEach(checkbox => {
+    checkbox.addEventListener('change', handleFilterChange);
+  });
+
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      activeFilters.searchTerm = e.target.value;
+      applyFilters();
+    });
+  }
+
+  const clearFiltersBtn = document.getElementById('clear-filters');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', clearAllFilters);
+  }
+
+  function handleFilterChange(e) {
+    const { checked, value, name } = e.target;
+    
+    switch(name) {
+      case 'era-filter':
+        if (checked) {
+          activeFilters.eras.push(value);
+        } else {
+          activeFilters.eras = activeFilters.eras.filter(id => id !== value);
+        }
+        break;
+      case 'continent-filter':
+        if (checked) {
+          activeFilters.continents.push(value);
+        } else {
+          activeFilters.continents = activeFilters.continents.filter(c => c !== value);
+        }
+        break;
+      case 'beliefs-filter':
+        if (checked) {
+          activeFilters.beliefs.push(e.target.dataset.belief);
+        } else {
+          activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== e.target.dataset.belief);
+        }
+        break;
+      case 'status-filter':
+        if (checked) {
+          activeFilters.statuses.push(value);
+        } else {
+          activeFilters.statuses = activeFilters.statuses.filter(s => s !== value);
+        }
+        break;
+    }
+    
+    applyFilters();
+  }
+
+  function clearAllFilters() {
+    // Uncheck all checkboxes
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+
+    // Clear search input
+    if (searchInput) {
+      searchInput.value = '';
+    }
+
+    // Reset active filters
+    activeFilters = {
+      eras: [],
+      continents: [],
+      beliefs: [],
+      statuses: [],
+      searchTerm: ''
+    };
+
+    // Apply the cleared filters
+    applyFilters();
+  }
+
+  function applyFilters() {
+    // Dispatch event with current filters
+    document.dispatchEvent(new CustomEvent('timeline-filters-changed', { 
+      detail: activeFilters
+    }));
+  }
+</script>
+
+<style>
+  .filter-pill {
+    @apply rounded-full px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors cursor-pointer;
+  }
+
+  .filter-pill.active {
+    @apply bg-primary-100 text-primary-800 hover:bg-primary-200;
+  }
+</style>

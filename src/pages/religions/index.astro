@@ -1,0 +1,481 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ReligionCard from '../../components/ReligionCard.astro';
+import { fetchReligions, fetchEras } from '../../lib/services/religionService';
+import { Search, FilterIcon, X } from 'lucide-react';
+
+// Get all religions and eras
+const religions = await fetchReligions();
+const eras = await fetchEras();
+
+// Get unique continents and beliefs for filters
+const uniqueContinents = Array.from(
+  new Set(religions.map(r => r.continent).filter(Boolean))
+);
+
+const uniqueBeliefs = Array.from(
+  new Set(religions.flatMap(r => r.beliefs))
+);
+
+// Sort religions by founding year
+const sortedReligions = [...religions].sort((a, b) => a.foundingYear - b.foundingYear);
+---
+
+<Layout title="Browse Religions">
+  <Header />
+  
+  <main class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">World Religions Encyclopedia</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-6">
+        Explore our comprehensive database of religions throughout human history, from ancient belief systems to modern faiths.
+      </p>
+      
+      <!-- Search and Filters -->
+      <div class="bg-white shadow rounded-lg p-4 mb-8">
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input 
+              type="text" 
+              id="religion-search"
+              placeholder="Search for a religion..." 
+              class="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          
+          <div class="flex gap-2 flex-wrap">
+            <div class="relative" id="era-filter-container">
+              <button class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 inline-flex items-center">
+                <FilterIcon className="h-4 w-4 mr-1 text-gray-400" />
+                <span>Era</span>
+              </button>
+              <div class="hidden absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64 p-3" id="era-filter-dropdown">
+                <div class="max-h-60 overflow-y-auto space-y-1">
+                  {eras.map(era => (
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" 
+                        value={era.id}
+                        data-filter-type="era"
+                        data-era-id={era.id}
+                      />
+                      <span class="ml-2 text-sm">{era.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div class="relative" id="continent-filter-container">
+              <button class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 inline-flex items-center">
+                <FilterIcon className="h-4 w-4 mr-1 text-gray-400" />
+                <span>Origin</span>
+              </button>
+              <div class="hidden absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64 p-3" id="continent-filter-dropdown">
+                <div class="max-h-60 overflow-y-auto space-y-1">
+                  {uniqueContinents.map(continent => (
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        value={continent}
+                        data-filter-type="continent"
+                        data-continent={continent}
+                      />
+                      <span class="ml-2 text-sm">{continent}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div class="relative" id="beliefs-filter-container">
+              <button class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 inline-flex items-center">
+                <FilterIcon className="h-4 w-4 mr-1 text-gray-400" />
+                <span>Beliefs</span>
+              </button>
+              <div class="hidden absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64 p-3" id="beliefs-filter-dropdown">
+                <div class="max-h-60 overflow-y-auto space-y-1">
+                  {uniqueBeliefs.map(belief => (
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        value={belief}
+                        data-filter-type="belief"
+                        data-belief={belief}
+                      />
+                      <span class="ml-2 text-sm">{belief}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div class="relative" id="status-filter-container">
+              <button class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 inline-flex items-center">
+                <FilterIcon className="h-4 w-4 mr-1 text-gray-400" />
+                <span>Status</span>
+              </button>
+              <div class="hidden absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64 p-3" id="status-filter-dropdown">
+                <div class="space-y-1">
+                  {['active', 'extinct', 'evolved'].map(status => (
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        value={status}
+                        data-filter-type="status"
+                        data-status={status}
+                      />
+                      <span class="ml-2 text-sm capitalize">{status}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <button id="clear-filters" class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 inline-flex items-center">
+              <X className="h-4 w-4 mr-1 text-gray-400" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Active Filters Display -->
+      <div id="active-filters" class="flex flex-wrap gap-2 mb-4 hidden">
+        <!-- This will be populated by JavaScript -->
+      </div>
+      
+      <!-- Results Count -->
+      <div class="mb-4">
+        <p id="results-count" class="text-gray-600">Showing <span id="showing-count">{religions.length}</span> religions</p>
+      </div>
+      
+      <!-- Religions Grid -->
+      <div id="religions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sortedReligions.map(religion => (
+          <ReligionCard religion={religion} />
+        ))}
+      </div>
+      
+      <!-- Empty State -->
+      <div id="no-results" class="hidden text-center py-16">
+        <p class="text-lg text-gray-500 mb-4">No religions match your search criteria.</p>
+        <button id="reset-filters" class="btn btn-primary">Reset Filters</button>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</Layout>
+
+<script>
+  // Filter dropdown toggles
+  const filterContainers = ['era-filter-container', 'continent-filter-container', 'beliefs-filter-container', 'status-filter-container'];
+  
+  filterContainers.forEach(containerId => {
+    const container = document.getElementById(containerId);
+    const button = container?.querySelector('button');
+    const dropdown = container?.querySelector('div[id$="-dropdown"]');
+    
+    button?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown?.classList.toggle('hidden');
+      
+      // Close other dropdowns
+      filterContainers.forEach(otherId => {
+        if (otherId !== containerId) {
+          document.getElementById(otherId)?.querySelector('div[id$="-dropdown"]')?.classList.add('hidden');
+        }
+      });
+    });
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    filterContainers.forEach(containerId => {
+      document.getElementById(containerId)?.querySelector('div[id$="-dropdown"]')?.classList.add('hidden');
+    });
+  });
+  
+  // Search and filter functionality
+  const searchInput = document.getElementById('religion-search');
+  const religionsGrid = document.getElementById('religions-grid');
+  const noResults = document.getElementById('no-results');
+  const clearFiltersBtn = document.getElementById('clear-filters');
+  const resetFiltersBtn = document.getElementById('reset-filters');
+  const activeFiltersContainer = document.getElementById('active-filters');
+  const showingCountEl = document.getElementById('showing-count');
+  
+  let religions = Array.from(document.querySelectorAll('#religions-grid > div'));
+  let activeFilters = {
+    search: '',
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: []
+  };
+  
+  // Search input handler
+  searchInput?.addEventListener('input', (e) => {
+    const target = e.target as HTMLInputElement;
+    activeFilters.search = target.value.toLowerCase();
+    applyFilters();
+    updateActiveFiltersDisplay();
+  });
+  
+  // Filter checkbox handler
+  document.querySelectorAll('input[type="checkbox"][data-filter-type]').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      const type = target.getAttribute('data-filter-type');
+      const value = target.value;
+      
+      if (!type) return;
+      
+      if (target.checked) {
+        activeFilters[type].push(value);
+      } else {
+        activeFilters[type] = activeFilters[type].filter(item => item !== value);
+      }
+      
+      applyFilters();
+      updateActiveFiltersDisplay();
+    });
+  });
+  
+  // Clear filters
+  clearFiltersBtn?.addEventListener('click', clearAllFilters);
+  resetFiltersBtn?.addEventListener('click', clearAllFilters);
+  
+  function clearAllFilters() {
+    // Clear search
+    if (searchInput) (searchInput as HTMLInputElement).value = '';
+    
+    // Uncheck all checkboxes
+    document.querySelectorAll('input[type="checkbox"][data-filter-type]').forEach(checkbox => {
+      (checkbox as HTMLInputElement).checked = false;
+    });
+    
+    // Reset filter state
+    activeFilters = {
+      search: '',
+      eras: [],
+      continents: [],
+      beliefs: [],
+      statuses: []
+    };
+    
+    // Apply empty filters
+    applyFilters();
+    updateActiveFiltersDisplay();
+  }
+  
+  // Apply all active filters
+  function applyFilters() {
+    let visibleCount = 0;
+    
+    religions.forEach(card => {
+      // Get card data attributes
+      const religionName = card.querySelector('h3')?.textContent?.toLowerCase() || '';
+      const summary = card.querySelector('p')?.textContent?.toLowerCase() || '';
+      const eraId = card.getAttribute('data-era-id') || '';
+      const continent = card.getAttribute('data-continent') || '';
+      const beliefs = card.getAttribute('data-beliefs')?.split(',') || [];
+      const status = card.getAttribute('data-status') || '';
+      
+      // Check if card matches all filters
+      const matchesSearch = !activeFilters.search || 
+        religionName.includes(activeFilters.search) || 
+        summary.includes(activeFilters.search);
+      
+      const matchesEra = activeFilters.eras.length === 0 || 
+        activeFilters.eras.includes(eraId);
+      
+      const matchesContinent = activeFilters.continents.length === 0 || 
+        activeFilters.continents.some(c => continent.includes(c));
+      
+      const matchesBeliefs = activeFilters.beliefs.length === 0 || 
+        activeFilters.beliefs.some(b => beliefs.includes(b));
+      
+      const matchesStatus = activeFilters.statuses.length === 0 || 
+        activeFilters.statuses.includes(status);
+      
+      // Show or hide card based on all filters
+      const matches = matchesSearch && matchesEra && matchesContinent && matchesBeliefs && matchesStatus;
+      
+      if (matches) {
+        card.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+    
+    // Update count and empty state
+    if (showingCountEl) showingCountEl.textContent = visibleCount.toString();
+    
+    if (visibleCount === 0) {
+      noResults?.classList.remove('hidden');
+      religionsGrid?.classList.add('hidden');
+    } else {
+      noResults?.classList.add('hidden');
+      religionsGrid?.classList.remove('hidden');
+    }
+  }
+  
+  // Update the active filters display
+  function updateActiveFiltersDisplay() {
+    if (!activeFiltersContainer) return;
+    
+    // Clear existing filters
+    activeFiltersContainer.innerHTML = '';
+    
+    // Check if any filters are active
+    const hasActiveFilters = 
+      activeFilters.search || 
+      activeFilters.eras.length > 0 || 
+      activeFilters.continents.length > 0 || 
+      activeFilters.beliefs.length > 0 || 
+      activeFilters.statuses.length > 0;
+    
+    if (!hasActiveFilters) {
+      activeFiltersContainer.classList.add('hidden');
+      return;
+    }
+    
+    activeFiltersContainer.classList.remove('hidden');
+    
+    // Add search filter if present
+    if (activeFilters.search) {
+      const filterPill = createFilterPill(`Search: ${activeFilters.search}`, () => {
+        if (searchInput) (searchInput as HTMLInputElement).value = '';
+        activeFilters.search = '';
+        applyFilters();
+        updateActiveFiltersDisplay();
+      });
+      activeFiltersContainer.appendChild(filterPill);
+    }
+    
+    // Add era filters
+    activeFilters.eras.forEach(eraId => {
+      const eraName = document.querySelector(`input[data-era-id="${eraId}"]`)?.closest('label')?.textContent?.trim();
+      if (!eraName) return;
+      
+      const filterPill = createFilterPill(`Era: ${eraName}`, () => {
+        const checkbox = document.querySelector(`input[data-era-id="${eraId}"]`) as HTMLInputElement;
+        if (checkbox) checkbox.checked = false;
+        activeFilters.eras = activeFilters.eras.filter(id => id !== eraId);
+        applyFilters();
+        updateActiveFiltersDisplay();
+      });
+      activeFiltersContainer.appendChild(filterPill);
+    });
+    
+    // Add continent filters
+    activeFilters.continents.forEach(continent => {
+      const filterPill = createFilterPill(`Origin: ${continent}`, () => {
+        const checkbox = document.querySelector(`input[data-continent="${continent}"]`) as HTMLInputElement;
+        if (checkbox) checkbox.checked = false;
+        activeFilters.continents = activeFilters.continents.filter(c => c !== continent);
+        applyFilters();
+        updateActiveFiltersDisplay();
+      });
+      activeFiltersContainer.appendChild(filterPill);
+    });
+    
+    // Add belief filters
+    activeFilters.beliefs.forEach(belief => {
+      const filterPill = createFilterPill(`Belief: ${belief}`, () => {
+        const checkbox = document.querySelector(`input[data-belief="${belief}"]`) as HTMLInputElement;
+        if (checkbox) checkbox.checked = false;
+        activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== belief);
+        applyFilters();
+        updateActiveFiltersDisplay();
+      });
+      activeFiltersContainer.appendChild(filterPill);
+    });
+    
+    // Add status filters
+    activeFilters.statuses.forEach(status => {
+      const filterPill = createFilterPill(`Status: ${status}`, () => {
+        const checkbox = document.querySelector(`input[data-status="${status}"]`) as HTMLInputElement;
+        if (checkbox) checkbox.checked = false;
+        activeFilters.statuses = activeFilters.statuses.filter(s => s !== status);
+        applyFilters();
+        updateActiveFiltersDisplay();
+      });
+      activeFiltersContainer.appendChild(filterPill);
+    });
+  }
+  
+  // Helper to create filter pills
+  function createFilterPill(text, removeCallback) {
+    const pill = document.createElement('div');
+    pill.className = 'inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
+    pill.innerHTML = `
+      <span>${text}</span>
+      <button class="ml-1 text-blue-600 hover:text-blue-800">
+        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    `;
+    
+    pill.querySelector('button')?.addEventListener('click', removeCallback);
+    
+    return pill;
+  }
+
+  // Add data attributes to religion cards for filtering
+  document.querySelectorAll('#religions-grid > div').forEach(card => {
+    const eraId = card.getAttribute('data-era-id');
+    const continent = card.getAttribute('data-continent');
+    const beliefs = card.getAttribute('data-beliefs');
+    const status = card.getAttribute('data-status');
+    
+    // If attributes are missing, try to extract them
+    if (!eraId || !continent || !beliefs || !status) {
+      // Extract era info - this will need to be set properly from your data
+      const cardEraEl = card.querySelector('.religion-era');
+      if (cardEraEl && !eraId) {
+        card.setAttribute('data-era-id', cardEraEl.getAttribute('data-era-id') || '');
+      }
+      
+      // Extract continent
+      const cardContinentEl = card.querySelector('.religion-continent');
+      if (cardContinentEl && !continent) {
+        card.setAttribute('data-continent', cardContinentEl.textContent?.trim() || '');
+      }
+      
+      // Extract beliefs
+      const beliefEls = Array.from(card.querySelectorAll('.belief-tag'));
+      if (beliefEls.length > 0 && !beliefs) {
+        const beliefTexts = beliefEls.map(el => el.textContent?.trim()).filter(Boolean);
+        card.setAttribute('data-beliefs', beliefTexts.join(','));
+      }
+      
+      // Extract status
+      const cardStatusEl = card.querySelector('.religion-status');
+      if (cardStatusEl && !status) {
+        card.setAttribute('data-status', cardStatusEl.getAttribute('data-status') || '');
+      }
+    }
+  });
+</script>
+
+<style>
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+</style>
