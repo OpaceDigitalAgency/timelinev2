@@ -59,40 +59,42 @@ const totalCount = await countReligions();
             <!-- SEO-friendly fallback content (hidden visually but available to search engines) -->
             <div class="sr-only">
               <h2>Timeline of Religious Traditions by Era</h2>
-              {eras.map(era => {
-                // Filter religions that belong to this era
-                const eraReligions = religions.filter(religion =>
-                  religion.foundingYear >= era.startYear && religion.foundingYear <= era.endYear
-                );
-                
-                if (eraReligions.length > 0) {
-                  return (
-                    <section>
-                      <h3>{era.name} ({era.startYear < 0 ? Math.abs(era.startYear) + ' BCE' : era.startYear + ' CE'} to {era.endYear < 0 ? Math.abs(era.endYear) + ' BCE' : era.endYear + ' CE'})</h3>
-                      <ul>
-                        {eraReligions.map(religion => (
-                          <li>
-                            <h4>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h4>
-                            <p>{religion.summary}</p>
-                            {religion.beliefs && religion.beliefs.length > 0 && (
-                              <div>
-                                <h5>Key Beliefs:</h5>
-                                <ul>
-                                  {religion.beliefs.map(belief => (
-                                    <li>{belief}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
+              <div>
+                {eras.map(era => {
+                  // Filter religions that belong to this era
+                  const eraReligions = religions.filter(religion =>
+                    religion.foundingYear >= era.startYear && religion.foundingYear <= era.endYear
                   );
-                }
-                return null;
-              })}
+                  
+                  if (eraReligions.length > 0) {
+                    return (
+                      <section>
+                        <h3>{era.name} ({era.startYear < 0 ? Math.abs(era.startYear) + ' BCE' : era.startYear + ' CE'} to {era.endYear < 0 ? Math.abs(era.endYear) + ' BCE' : era.endYear + ' CE'})</h3>
+                        <ul>
+                          {eraReligions.map(religion => (
+                            <li>
+                              <h4>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h4>
+                              <p>{religion.summary}</p>
+                              {religion.beliefs && religion.beliefs.length > 0 && (
+                                <div>
+                                  <h5>Key Beliefs:</h5>
+                                  <ul>
+                                    {religion.beliefs.map(belief => (
+                                      <li>{belief}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
             </div>
           </div>
         </div>
