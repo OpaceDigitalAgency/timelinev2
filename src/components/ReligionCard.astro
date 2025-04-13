@@ -9,6 +9,11 @@ interface Props {
 
 const { religion } = Astro.props;
 
+let eraName = '';
+if (religion.era && typeof religion.era === 'object' && 'name' in religion.era) {
+  eraName = religion.era.name;
+}
+
 function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
 }
@@ -28,7 +33,7 @@ const statusClasses = {
 };
 ---
 
-<div class="timeline-card group relative" data-id={religion.id} data-era-id={religion.era} data-continent={religion.continent} data-beliefs={religion.beliefs.join(',')} data-status={religion.status}>
+<div class="timeline-card group relative" data-id={religion.id} data-era-id={eraName} data-continent={religion.continent} data-beliefs={religion.beliefs.join(',')} data-status={religion.status}>
   <div class="absolute top-2 right-2 flex space-x-1">
     <span class={`religion-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses[religion.status]}`} data-status={religion.status}>
       {religion.status === 'active' ? 'Active' : religion.status === 'extinct' ? 'Extinct' : 'Evolved'}
@@ -54,7 +59,7 @@ const statusClasses = {
       <Globe className="h-3 w-3 mr-1" />
       <span>{religion.originCountry}</span>
     </div>
-    <div class="religion-era hidden" data-era-id={religion.era}></div>
+    <div class="religion-era hidden" data-era-id={eraName}></div>
   </div>
   
   {religion.beliefs.length > 0 && (
