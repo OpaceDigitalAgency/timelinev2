@@ -73,16 +73,22 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
       let filtered = [...initialReligions];
       
       if (filters.eras && filters.eras.length > 0) {
+        // Log all religions and their eras for debugging
+        console.log("All religions and their eras:");
+        initialReligions.forEach(r => {
+          console.log(`Religion: ${r.name}, Era ID: ${r.era}, Founding Year: ${r.foundingYear}`);
+        });
+        
+        // Log the era IDs we're filtering by
+        console.log(`Filtering by era IDs: ${filters.eras.join(', ')}`);
+        
         // Find religions that match the era IDs in the filters
         filtered = filtered.filter(religion => {
           // Check if the religion's era ID is in the filters.eras array
           const result = filters.eras.includes(religion.era);
           
-          // Debug logging
-          if (filters.eras.includes('1f1162e5-54c4-411b-a55b-5dc4e24e0faa') ||
-              filters.eras.includes('c095e73c-1c7f-4645-aaa6-bed059f20ef1')) {
-            console.log(`Religion: ${religion.name}, Era ID: ${religion.era}, Founding Year: ${religion.foundingYear}, Match: ${result}`);
-          }
+          // Debug logging for all religions
+          console.log(`Religion: ${religion.name}, Era ID: ${religion.era}, Founding Year: ${religion.foundingYear}, Match: ${result}`);
           
           return result;
         });
