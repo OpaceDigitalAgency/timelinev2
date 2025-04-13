@@ -92,9 +92,23 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
       
       // Filter by era
       if (filters.eras && filters.eras.length > 0) {
+        // Find religions that match the era IDs in the filters
         filtered = filtered.filter(religion => {
-          return filters.eras.includes(religion.era);
+          // Check if the religion's era ID is in the filters.eras array
+          const result = filters.eras.includes(religion.era);
+          
+          // Debug logging
+          if (filters.eras.includes('1f1162e5-54c4-411b-a55b-5dc4e24e0faa') ||
+              filters.eras.includes('c095e73c-1c7f-4645-aaa6-bed059f20ef1')) {
+            console.log(`Religion: ${religion.name}, Era ID: ${religion.era}, Founding Year: ${religion.foundingYear}, Match: ${result}`);
+          }
+          
+          return result;
         });
+        
+        // Debug: Log the filtered religions and their eras
+        console.log(`Filtering by eras: ${filters.eras.join(', ')}`);
+        console.log(`Found ${filtered.length} religions with matching eras`);
       }
       
       // Filter by continent
@@ -238,9 +252,19 @@ const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({ religions: init
       .text(`Showing ${sortedReligions.length} religions across ${formatYear(minYear)} to ${formatYear(maxYear)}`);
 
     // Create a time scale for the x-axis
+    // Use a power scale to give more space to prehistoric years
+    // Log the min and max years for debugging
+    console.log(`Min year: ${minYear}, Max year: ${maxYear}`);
+    console.log(`Prehistoric religions:`, sortedReligions.filter(r => r.foundingYear < 0));
+    
+    // Use a custom scale that gives more weight to prehistoric years
     const timeScale = d3.scaleLinear()
-      .domain([minYear, maxYear])
-      .range([padding.left, width - padding.right]);
+      .domain([minYear, 0, maxYear]) // Split the domain at year 0 (BCE/CE boundary)
+      .range([padding.left, width / 2, width - padding.right]); // Give half the width to BCE years
+      
+    // Log the min and max years for debugging
+    console.log(`Min year: ${minYear}, Max year: ${maxYear}`);
+    console.log(`Prehistoric religions:`, sortedReligions.filter(r => r.foundingYear < 0));
 
     // Create a flowing path for the timeline
     const pathGenerator = () => {

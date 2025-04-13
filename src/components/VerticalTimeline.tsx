@@ -73,7 +73,23 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
       let filtered = [...initialReligions];
       
       if (filters.eras && filters.eras.length > 0) {
-        filtered = filtered.filter(religion => filters.eras.includes(religion.era));
+        // Find religions that match the era IDs in the filters
+        filtered = filtered.filter(religion => {
+          // Check if the religion's era ID is in the filters.eras array
+          const result = filters.eras.includes(religion.era);
+          
+          // Debug logging
+          if (filters.eras.includes('1f1162e5-54c4-411b-a55b-5dc4e24e0faa') ||
+              filters.eras.includes('c095e73c-1c7f-4645-aaa6-bed059f20ef1')) {
+            console.log(`Religion: ${religion.name}, Era ID: ${religion.era}, Founding Year: ${religion.foundingYear}, Match: ${result}`);
+          }
+          
+          return result;
+        });
+        
+        // Debug: Log the filtered religions and their eras
+        console.log(`Filtering by eras: ${filters.eras.join(', ')}`);
+        console.log(`Found ${filtered.length} religions with matching eras`);
       }
       
       if (filters.continents && filters.continents.length > 0) {
@@ -168,9 +184,18 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
     const yearRange = maxYear - minYear;
     
     // Create a time scale for vertical positioning
+    // Log the min and max years for debugging
+    console.log(`Min year: ${minYear}, Max year: ${maxYear}`);
+    console.log(`Prehistoric religions:`, sortedReligions.filter(r => r.foundingYear < 0));
+    
+    // Use a custom scale that gives more weight to prehistoric years
     const timeScale = d3.scaleLinear()
-      .domain([minYear, maxYear])
-      .range([100, height - 100]);
+      .domain([minYear, 0, maxYear]) // Split the domain at year 0 (BCE/CE boundary)
+      .range([100, height / 2, height - 100]); // Give half the height to BCE years
+      
+    // Log the min and max years for debugging
+    console.log(`Min year: ${minYear}, Max year: ${maxYear}`);
+    console.log(`Prehistoric religions:`, sortedReligions.filter(r => r.foundingYear < 0));
 
     // Create a container group for the timeline
     const timelineContainer = svg.append('g')
