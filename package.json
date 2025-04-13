@@ -39,6 +39,7 @@
     "eslint-plugin-astro": "^0.31.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "postcss": "^8.4.35",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "@vitejs/plugin-react": "^4.2.1"
   }
 }
