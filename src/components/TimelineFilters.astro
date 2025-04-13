@@ -157,7 +157,7 @@ const isMultiFilter =
   </div>
 </div>
 
-<script>
+<script is:inline>
   // For toggling dropdowns
   const dropdownToggles = {
     'era-filter': 'era-dropdown',
@@ -199,6 +199,9 @@ const isMultiFilter =
       statuses: [],
       searchTerm: ''
     };
+    
+    // Safety check to ensure we're in a browser environment
+    if (typeof window === 'undefined') return filters;
     
     const path = window.location.pathname;
     
@@ -384,6 +387,9 @@ const isMultiFilter =
 
   // Set checkboxes based on filters from URL
   function setCheckboxesFromFilters(filters) {
+    // Safety check to ensure we're in a browser environment
+    if (typeof document === 'undefined') return;
+    
     document.querySelectorAll('input[name="era-filter"]').forEach(cb => {
       cb.checked = filters.eras.includes(cb.value);
     });
@@ -400,6 +406,9 @@ const isMultiFilter =
 
   // Build path for filters - SEO-friendly for single filters, client-side for multi-filters
   function buildPathFromFilters(filters) {
+    // Safety check to ensure we're in a browser environment
+    if (typeof window === 'undefined') return '';
+    
     // Determine base path based on current view
     const basePath = window.location.pathname.includes('/vertical-timeline') ? '/vertical-timeline' : '/timeline';
     
@@ -471,13 +480,36 @@ const isMultiFilter =
   }
 
   // Filtering functionality
-  let activeFilters = getFiltersFromPath();
+  // Safety check to ensure we're in a browser environment
+  let activeFilters = typeof window !== 'undefined' ? getFiltersFromPath() : { eras: [], continents: [], beliefs: [], statuses: [], searchTerm: '' };
 
   // On load, set checkboxes from URL and initialize window.initialFilters
   window.addEventListener('DOMContentLoaded', () => {
+    // Get initial filters from props if available
+    const initialFiltersFromProps = {
+      eras: [],
+      continents: [],
+      beliefs: [],
+      statuses: []
+    };
+    
+    // Try to access Astro.props.initialFilters if it exists
+    try {
+      // Check if initialFilters was passed and has values
+      if (typeof initialFilters !== 'undefined' &&
+          Object.values(initialFilters).some(arr => arr.length > 0)) {
+        initialFiltersFromProps.eras = initialFilters.eras || [];
+        initialFiltersFromProps.continents = initialFilters.continents || [];
+        initialFiltersFromProps.beliefs = initialFilters.beliefs || [];
+        initialFiltersFromProps.statuses = initialFilters.statuses || [];
+      }
+    } catch (e) {
+      console.log('Could not access initialFilters from props');
+    }
+    
     // Set initial filters from props or URL
-    activeFilters = initialFilters && Object.values(initialFilters).some(arr => arr.length > 0)
-      ? { ...initialFilters, searchTerm: '' }
+    activeFilters = Object.values(initialFiltersFromProps).some(arr => arr.length > 0)
+      ? { ...initialFiltersFromProps, searchTerm: '' }
       : getFiltersFromPath();
     
     // Set checkboxes based on active filters
@@ -500,57 +532,7 @@ const isMultiFilter =
     checkbox.addEventListener('change', handleFilterChange);
   });
 
-  // Define the handleFilterChange function
-  function handleFilterChange(e) {
-    const checkbox = e.target;
-    const filterType = checkbox.name.split('-')[0]; // era, continent, beliefs, or status
-    
-    // Update active filters based on checkbox state
-    if (checkbox.checked) {
-      // Add filter
-      if (filterType === 'era') {
-        activeFilters.eras.push(checkbox.value);
-      } else if (filterType === 'continent') {
-        activeFilters.continents.push(checkbox.value);
-      } else if (filterType === 'beliefs') {
-        activeFilters.beliefs.push(checkbox.dataset.belief);
-      } else if (filterType === 'status') {
-        activeFilters.statuses.push(checkbox.value);
-      }
-    } else {
-      // Remove filter
-      if (filterType === 'era') {
-        activeFilters.eras = activeFilters.eras.filter(id => id !== checkbox.value);
-      } else if (filterType === 'continent') {
-        activeFilters.continents = activeFilters.continents.filter(c => c !== checkbox.value);
-      } else if (filterType === 'beliefs') {
-        activeFilters.beliefs = activeFilters.beliefs.filter(b => b !== checkbox.dataset.belief);
-      } else if (filterType === 'status') {
-        activeFilters.statuses = activeFilters.statuses.filter(s => s !== checkbox.value);
-      }
-    }
-    
-    // Build new URL path based on filters
-    const newPath = buildPathFromFilters(activeFilters);
-    
-    // Count total filters
-    const totalFilters = activeFilters.eras.length + activeFilters.continents.length +
-                        activeFilters.beliefs.length + activeFilters.statuses.length;
-    // For multi-filters, use history.pushState to avoid page reload
-    if (totalFilters > 1) {
-      // Update URL without causing a page reload
-      window.history.pushState({}, '', newPath);
-      
-      // Dispatch custom event to notify timeline components of filter change
-      document.dispatchEvent(new CustomEvent('filters-changed', {
-        detail: { filters: activeFilters }
-      }));
-    } else {
-      // For single filters or no filters, navigate to the SEO-friendly URL
-      window.location.href = newPath;
-    }
-    }
-  }
+  // Function will be defined later
 
   document.querySelectorAll('input[name="status-filter"]').forEach(checkbox => {
     checkbox.addEventListener('change', handleFilterChange);
