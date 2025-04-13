@@ -1,0 +1,141 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import TimelineFilters from '../../components/TimelineFilters.astro';
+import HorizontalTimeline from '../../components/HorizontalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../lib/services/religionService';
+
+const { filters = [] } = Astro.params;
+
+// Helper: Parse filters from URL segments
+function parseFilters(filtersArr) {
+  const filterObj = {
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: [],
+  };
+  let i = 0;
+  while (i < filtersArr.length) {
+    const key = filtersArr[i];
+    const value = filtersArr[i + 1];
+    if (!value) break;
+    switch (key) {
+      case 'era':
+        filterObj.eras.push(value);
+        break;
+      case 'continent':
+        filterObj.continents.push(value);
+        break;
+      case 'belief':
+        filterObj.beliefs.push(value);
+        break;
+      case 'status':
+        filterObj.statuses.push(value);
+        break;
+    }
+    i += 2;
+  }
+  return filterObj;
+}
+
+const activeFilters = parseFilters(filters);
+
+// Fetch filtered data
+const allEras = await fetchEras();
+const allReligions = await fetchReligions();
+const totalCount = await countReligions();
+
+// Filter religions based on activeFilters
+function religionMatchesFilters(religion, filters) {
+  if (filters.eras.length && !filters.eras.includes(String(religion.eraId))) return false;
+  if (filters.continents.length && !filters.continents.some(c => religion.originContinent?.toLowerCase().includes(c.toLowerCase()))) return false;
+  if (filters.beliefs.length && !filters.beliefs.some(b => religion.beliefs?.map(x => x.toLowerCase()).includes(b.toLowerCase()))) return false;
+  if (filters.statuses.length && !filters.statuses.includes(religion.status)) return false;
+  return true;
+}
+
+const filteredReligions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
+
+// SEO meta/canonical
+function filtersToTitle(filters) {
+  let parts = [];
+  if (filters.eras.length) parts.push('Era: ' + filters.eras.join(', '));
+  if (filters.continents.length) parts.push('Continent: ' + filters.continents.join(', '));
+  if (filters.beliefs.length) parts.push('Belief: ' + filters.beliefs.join(', '));
+  if (filters.statuses.length) parts.push('Status: ' + filters.statuses.join(', '));
+  return parts.length ? parts.join(' | ') : 'Timeline';
+}
+const pageTitle = filtersToTitle(activeFilters) + ' - Religious Timeline';
+const canonicalUrl = 'https://evolutionofman.org/timeline/' + filters.join('/');
+
+---
+
+<Layout title={pageTitle}>
+  <head>
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={pageTitle} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <Header />
+
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">The Evolution of Religious Beliefs</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        Explore how religious beliefs have evolved, connected, and diverged throughout human history with our interactive timeline.
+      </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This horizontal timeline visualization presents a chronological view of religious traditions from prehistory to modern times.</p>
+        <p>Each node represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+        <p>Connections between nodes show historical relationships and influences between different religious traditions.</p>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {filteredReligions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+
+    <TimelineFilters currentView="horizontal" />
+
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex justify-end mb-4">
+          <!-- Timeline controls could go here if needed -->
+        </div>
+        <div id="timeline-container" class="mt-4">
+          <div id="horizontal-view">
+            <HorizontalTimeline client:only="react" religions={filteredReligions} eras={allEras} />
+            <div class="sr-only">
+              <h2>Timeline of Religious Traditions</h2>
+              <ul>
+                {filteredReligions.map(religion => {
+                  return (
+                    <li>
+                      <h3>{religion.name} ({religion.foundingYear < 0 ? Math.abs(religion.foundingYear) + ' BCE' : religion.foundingYear + ' CE'})</h3>
+                      <p>{religion.summary}</p>
+                      {religion.beliefs && religion.beliefs.length > 0 && (
+                        <div>
+                          <h4>Key Beliefs:</h4>
+                          <ul>
+                            {religion.beliefs.map(belief => (
+                              <li>{belief}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <Footer />
+</Layout>
