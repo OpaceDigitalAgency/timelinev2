@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import TimelineFilters from '../components/TimelineFilters.astro';
-import HorizontalTimeline from '../components/HorizontalTimeline';
+import VerticalTimeline from '../components/VerticalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
@@ -13,7 +13,7 @@ const eras = await fetchEras();
 const totalCount = await countReligions();
 ---
 
-<Layout title="Horizontal Timeline">
+<Layout title="Vertical Timeline">
   <Header />
   
   <div class="min-h-screen flex flex-col">
@@ -27,7 +27,7 @@ const totalCount = await countReligions();
       </p>
     </div>
     
-    <TimelineFilters currentView="horizontal" />
+    <TimelineFilters currentView="vertical" />
     
     <main class="flex-grow">
       <div class="container mx-auto px-4 py-4">
@@ -46,10 +46,10 @@ const totalCount = await countReligions();
           </div>
         </div>
         
-        <!-- Horizontal Timeline View -->
+        <!-- Vertical Timeline View -->
         <div id="timeline-container" class="mt-4">
-          <div id="horizontal-view">
-            <HorizontalTimeline client:only="react" religions={religions} eras={eras} />
+          <div id="vertical-view">
+            <VerticalTimeline client:only="react" religions={religions} eras={eras} />
           </div>
         </div>
       </div>
@@ -124,17 +124,3 @@ const totalCount = await countReligions();
     });
   }
 </script>
-
-<style>
-  /* Timeline specific styles */
-  .timeline-svg text {
-    user-select: none;
-  }
-  
-  @media (max-width: 768px) {
-    #horizontal-timeline {
-      overflow-x: scroll;
-      -webkit-overflow-scrolling: touch;
-    }
-  }
-</style>

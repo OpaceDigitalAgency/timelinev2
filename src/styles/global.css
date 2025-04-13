@@ -6,13 +6,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark mode transition */
+:root {
+  --transition-duration: 0.2s;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
   }
   
   body {
-    @apply antialiased;
+    @apply antialiased transition-colors duration-200;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -43,15 +48,15 @@
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-700 dark:hover:bg-primary-600;
   }
   
   .btn-secondary {
-    @apply bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-primary-500;
+    @apply bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-primary-500 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700;
   }
 
   .timeline-card {
-    @apply bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300;
   }
 
   .religion-node {
@@ -71,10 +76,43 @@
   }
 
   .filter-pill {
-    @apply rounded-full px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors cursor-pointer;
+    @apply rounded-full px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors cursor-pointer dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600;
   }
 
   .filter-pill.active {
-    @apply bg-primary-100 text-primary-800 hover:bg-primary-200;
+    @apply bg-primary-100 text-primary-800 hover:bg-primary-200 dark:bg-primary-900 dark:text-primary-200 dark:hover:bg-primary-800;
+  }
+  
+  /* Dark mode card styles */
+  .dark .bg-white {
+    @apply bg-gray-800 text-gray-200;
+  }
+  
+  .dark .bg-gray-50 {
+    @apply bg-gray-900 text-gray-200;
+  }
+  
+  .dark .bg-gray-100 {
+    @apply bg-gray-800 text-gray-200;
+  }
+  
+  .dark .text-gray-700 {
+    @apply text-gray-300;
+  }
+  
+  .dark .text-gray-600 {
+    @apply text-gray-400;
+  }
+  
+  .dark .text-gray-900 {
+    @apply text-gray-100;
+  }
+  
+  .dark .border-gray-200 {
+    @apply border-gray-700;
+  }
+  
+  .dark .shadow-md {
+    @apply shadow-xl shadow-gray-900/20;
   }
 }

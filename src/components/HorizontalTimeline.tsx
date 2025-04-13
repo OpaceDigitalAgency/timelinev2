@@ -159,20 +159,30 @@ useEffect(() => {
     // Filter out religions with missing foundingYear (required for timeline placement)
     // Also filter out duplicate religions by ID to prevent duplicates in the timeline
     const uniqueReligionIds = new Set();
+    
+    // First pass: collect all unique IDs
+    filteredReligions.forEach(religion => {
+      uniqueReligionIds.add(religion.id);
+    });
+    
+    console.log(`Found ${uniqueReligionIds.size} unique religions out of ${filteredReligions.length} total`);
+    
+    // Second pass: filter and sort
     const sortedReligions = [...filteredReligions]
       .filter(r => {
         // Filter out religions with missing foundingYear
         if (typeof r.foundingYear !== 'number' || isNaN(r.foundingYear)) {
+          console.log(`Filtering out religion with invalid founding year: ${r.name}`);
           return false;
         }
         
-        // Filter out duplicate religions by ID
+        // Keep only one instance of each religion by ID
         if (uniqueReligionIds.has(r.id)) {
-          return false;
+          uniqueReligionIds.delete(r.id); // Remove from set so next occurrence is filtered out
+          return true;
         }
         
-        uniqueReligionIds.add(r.id);
-        return true;
+        return false;
       })
       .sort((a, b) => a.foundingYear - b.foundingYear);
 
@@ -427,7 +437,7 @@ useEffect(() => {
     const nodesGroup = svg.append('g').attr('class', 'nodes');
     
     nodes.forEach(node => {
-      const statusColors = {
+      const statusColors: Record<string, string> = {
         active: '#10b981',
         extinct: '#94a3b8',
         evolved: '#f59e0b'
@@ -530,7 +540,7 @@ useEffect(() => {
     ];
 
     statusEntries.forEach((entry, i) => {
-      const statusColors = {
+      const statusColors: Record<string, string> = {
         active: '#10b981',
         extinct: '#94a3b8',
         evolved: '#f59e0b'

@@ -1,5 +1,5 @@
 ---
-import { BookOpen, Search, Menu, X } from 'lucide-react';
+import { BookOpen, Search, Menu, X, Moon, Sun } from 'lucide-react';
 ---
 
 <header class="bg-white shadow-sm sticky top-0 z-50">
@@ -18,8 +18,12 @@ import { BookOpen, Search, Menu, X } from 'lucide-react';
       </nav>
       
       <div class="flex items-center space-x-3">
-        <button class="text-gray-700 hover:text-primary-600 transition-colors">
+        <button class="text-gray-700 hover:text-primary-600 transition-colors dark:text-gray-300">
           <Search className="h-5 w-5" />
+        </button>
+        <button id="header-theme-toggle" class="text-gray-700 hover:text-primary-600 transition-colors dark:text-gray-300">
+          <Sun id="header-light-icon" class="h-5 w-5 text-amber-500 hidden" />
+          <Moon id="header-dark-icon" class="h-5 w-5 text-indigo-400 hidden" />
         </button>
         <a href="/login" class="btn btn-secondary">Sign In</a>
         <a href="/suggest" class="btn btn-primary">Suggest an Edit</a>
@@ -59,6 +63,49 @@ import { BookOpen, Search, Menu, X } from 'lucide-react';
       mobileMenu.classList.toggle('hidden');
       menuOpen.classList.toggle('hidden');
       menuClose.classList.toggle('hidden');
+    });
+  }
+</script>
+
+<script>
+  // Theme toggle functionality
+  const headerThemeToggle = document.getElementById('header-theme-toggle');
+  const headerLightIcon = document.getElementById('header-light-icon');
+  const headerDarkIcon = document.getElementById('header-dark-icon');
+  
+  // Update the icons based on current theme
+  const updateHeaderIcons = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    headerLightIcon.classList.toggle('hidden', !isDark);
+    headerDarkIcon.classList.toggle('hidden', isDark);
+  };
+  
+  // Initialize icons
+  updateHeaderIcons();
+  
+  // Toggle theme when button is clicked
+  if (headerThemeToggle && headerLightIcon && headerDarkIcon) {
+    headerThemeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      const newTheme = isDark ? 'light' : 'dark';
+      
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(newTheme);
+      
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('theme', newTheme);
+      }
+      
+      updateHeaderIcons();
+      
+      // Also update the footer theme toggle if it exists
+      const footerLightIcon = document.getElementById('light-icon');
+      const footerDarkIcon = document.getElementById('dark-icon');
+      
+      if (footerLightIcon && footerDarkIcon) {
+        footerLightIcon.classList.toggle('hidden', !document.documentElement.classList.contains('dark'));
+        footerDarkIcon.classList.toggle('hidden', document.documentElement.classList.contains('dark'));
+      }
     });
   }
 </script>

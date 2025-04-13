@@ -70,8 +70,33 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ religions: initialR
     setFilteredReligions(initialReligions);
   }, [initialReligions]);
   
-  // Sort religions by foundingYear
-  const sortedReligions = [...filteredReligions].sort((a, b) => a.foundingYear - b.foundingYear);
+  // Sort religions by foundingYear and remove duplicates
+  const uniqueReligionIds = new Set();
+  
+  // First pass: collect all unique IDs
+  filteredReligions.forEach(religion => {
+    uniqueReligionIds.add(religion.id);
+  });
+  
+  console.log(`Found ${uniqueReligionIds.size} unique religions out of ${filteredReligions.length} total in vertical timeline`);
+  
+  // Second pass: filter and sort
+  const sortedReligions = [...filteredReligions]
+    .filter(r => {
+      // Filter out religions with missing foundingYear
+      if (typeof r.foundingYear !== 'number' || isNaN(r.foundingYear)) {
+        return false;
+      }
+      
+      // Keep only one instance of each religion by ID
+      if (uniqueReligionIds.has(r.id)) {
+        uniqueReligionIds.delete(r.id); // Remove from set so next occurrence is filtered out
+        return true;
+      }
+      
+      return false;
+    })
+    .sort((a, b) => a.foundingYear - b.foundingYear);
   
   // Group religions by era
   const religionsByEra = eras.map(era => {

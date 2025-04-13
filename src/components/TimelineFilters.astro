@@ -7,6 +7,12 @@ const eras = await fetchEras();
 const allBeliefs = ['Monotheism', 'Polytheism', 'Nontheism', 'Pantheism', 'Dualism', 'Animism', 'Philosophical'];
 const allContinents = ['Asia', 'Africa', 'Europe', 'North America', 'South America', 'Australia/Oceania', 'Middle East (West Asia)', 'East Asia', 'South Asia', 'Global'];
 const allStatuses = ['active', 'extinct', 'evolved'];
+
+interface Props {
+  currentView?: 'horizontal' | 'vertical';
+}
+
+const { currentView = 'horizontal' } = Astro.props;
 ---
 
 <div class="bg-white shadow-sm sticky top-16 z-40">
@@ -111,16 +117,16 @@ const allStatuses = ['active', 'extinct', 'evolved'];
       
       <div class="flex items-center space-x-2 ml-auto">
         <span class="text-sm text-gray-700">View:</span>
-        <button class="p-1 rounded border border-gray-300 bg-primary-100 border-primary-300" id="horizontal-view-toggle" title="Horizontal Timeline">
+        <a href="/timeline" class={`p-1 rounded border ${currentView === 'horizontal' ? 'bg-primary-100 border-primary-300' : 'bg-white hover:bg-gray-50 border-gray-300'}`} title="Horizontal Timeline">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
-        </button>
-        <button class="p-1 rounded border border-gray-300 bg-white hover:bg-gray-50" id="vertical-view-toggle" title="Vertical Timeline">
+        </a>
+        <a href="/vertical-timeline" class={`p-1 rounded border ${currentView === 'vertical' ? 'bg-primary-100 border-primary-300' : 'bg-white hover:bg-gray-50 border-gray-300'}`} title="Vertical Timeline">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-        </button>
+        </a>
       </div>
     </div>
   </div>
@@ -157,23 +163,6 @@ const allStatuses = ['active', 'extinct', 'evolved'];
     });
   });
   
-  // Timeline view toggle
-  const horizontalViewToggle = document.getElementById('horizontal-view-toggle');
-  const verticalViewToggle = document.getElementById('vertical-view-toggle');
-  
-  if (horizontalViewToggle && verticalViewToggle) {
-    horizontalViewToggle.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'horizontal' }));
-      horizontalViewToggle.classList.add('bg-primary-100', 'border-primary-300');
-      verticalViewToggle.classList.remove('bg-primary-100', 'border-primary-300');
-    });
-    
-    verticalViewToggle.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent('timeline-view-change', { detail: 'vertical' }));
-      verticalViewToggle.classList.add('bg-primary-100', 'border-primary-300');
-      horizontalViewToggle.classList.remove('bg-primary-100', 'border-primary-300');
-    });
-  }
 
   // Filtering functionality
   let activeFilters = {
@@ -213,6 +202,9 @@ const allStatuses = ['active', 'extinct', 'evolved'];
   if (clearFiltersBtn) {
     clearFiltersBtn.addEventListener('click', clearAllFilters);
   }
+  
+  // Listen for clear-all-filters event (from timeline components)
+  document.addEventListener('clear-all-filters', clearAllFilters);
 
   function handleFilterChange(e) {
     const { checked, value, name } = e.target;
