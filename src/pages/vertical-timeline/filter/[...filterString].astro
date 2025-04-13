@@ -7,54 +7,11 @@ import VerticalTimeline from '../../../components/VerticalTimeline';
 import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-export async function getStaticPaths() {
-  // Fetch eras for basic path generation
-  const eras = await fetchEras();
-  const religions = await fetchReligions();
-  
-  // Get all unique values for filters
-  const eraNames = [...new Set(eras.map(era => era.name.toLowerCase().replace(/\s+/g, '-')))];
-  const beliefSystems = [...new Set(religions.flatMap(r => r.beliefs || []).map(b => b.toLowerCase().replace(/\s+/g, '-')))];
-  const continents = [...new Set(religions.map(r => r.continent?.toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
-  const statuses = [...new Set(religions.map(r => r.status?.toLowerCase()).filter(Boolean))];
-  
-  // Generate paths for common filter combinations
-  const paths = [];
-  
-  // Add paths for each era
-  eraNames.forEach(era => {
-    paths.push({ params: { filterString: era } });
-  });
-  
-  // Add paths for each belief system
-  beliefSystems.forEach(belief => {
-    paths.push({ params: { filterString: belief } });
-  });
-  
-  // Add paths for each continent
-  continents.forEach(continent => {
-    paths.push({ params: { filterString: continent } });
-  });
-  
-  // Add paths for each status
-  statuses.forEach(status => {
-    paths.push({ params: { filterString: status } });
-  });
-  
-  // Add some common combinations
-  if (eraNames.includes('prehistoric') && beliefSystems.includes('animism')) {
-    paths.push({ params: { filterString: 'prehistoric-animism' } });
-  }
-  
-  if (eraNames.includes('classical') && beliefSystems.includes('polytheism')) {
-    paths.push({ params: { filterString: 'classical-polytheism' } });
-  }
-  
-  if (beliefSystems.includes('monotheism') && continents.includes('asia')) {
-    paths.push({ params: { filterString: 'monotheism-asia' } });
-  }
-  
-  return paths;
+export function getStaticPaths() {
+  return [
+    { params: { filterString: undefined } },
+    // We'll generate the rest dynamically
+  ];
 }
 
 // Get the filter string from the URL
@@ -87,11 +44,20 @@ function parseFilterString(str) {
   const allContinents = [...new Set(allReligions.map(r => r.continent?.toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
   const allStatuses = [...new Set(allReligions.map(r => r.status?.toLowerCase()).filter(Boolean))];
   
-  // Split the filter string by hyphens
-  const parts = str.split('-');
+  // Handle both array and string formats
+  let parts = [];
+  if (Array.isArray(str)) {
+    // If it's an array (from catch-all route), join all segments
+    parts = str.join('-').split('-');
+  } else {
+    // If it's a string, split by hyphens
+    parts = str.split('-');
+  }
   
   // Check each part against possible values
   parts.forEach(part => {
+    if (!part) return;
+    
     // Check if it's an era
     for (const [eraName, eraId] of eraMap.entries()) {
       if (eraName.includes(part) || part.includes(eraName)) {
@@ -181,14 +147,17 @@ const getReligionsForEra = (era: any) => {
 function filtersToTitle(filterString) {
   if (!filterString) return 'Vertical Timeline';
   
+  // Handle both array and string formats
+  let str = Array.isArray(filterString) ? filterString.join(' ') : filterString;
+  
   // Convert hyphens to spaces and capitalize each word
-  return filterString.split('-')
+  return str.split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ') + ' - Religious Timeline';
 }
 
 const pageTitle = filtersToTitle(filterString);
-const canonicalUrl = new URL(`/vertical-timeline/filter/${filterString || ''}`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
+const canonicalUrl = new URL(`/vertical-timeline/filter/${Array.isArray(filterString) ? filterString.join('/') : filterString || ''}`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
 ---
 
 <Layout title={pageTitle}>
