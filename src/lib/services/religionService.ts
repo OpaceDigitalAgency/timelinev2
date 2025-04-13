@@ -10,8 +10,8 @@ function isValidBeliefSystem(belief: string): belief is BeliefSystem {
   const isValid = validBeliefs.includes(belief);
   
   if (!isValid) {
-    console.warn(`Invalid belief system: "${belief}" is not in the list of valid beliefs:`, validBeliefs);
-    
+    // console.warn(`Invalid belief system: "${belief}" is not in the list of valid beliefs:`, validBeliefs);
+  
     // Check if this is a case sensitivity issue
     const lowerCaseBelief = belief.toLowerCase();
     const matchingBelief = validBeliefs.find(b => b.toLowerCase() === lowerCaseBelief);
