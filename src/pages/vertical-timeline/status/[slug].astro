@@ -1,0 +1,144 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import TimelineFilters from '../../../components/TimelineFilters.astro';
+import VerticalTimeline from '../../../components/VerticalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
+
+export async function getStaticPaths() {
+  const religions = await fetchReligions();
+  
+  // Get all unique statuses
+  const statuses = [...new Set(religions
+    .map(r => r.status)
+    .filter(Boolean)
+  )];
+  
+  return statuses.map(status => {
+    const slug = status.toLowerCase().replace(/\s+/g, '-');
+    return {
+      params: { slug },
+      props: { status }
+    };
+  });
+}
+
+const { status } = Astro.props;
+const { slug } = Astro.params;
+
+// Get all data
+const allReligions = await fetchReligions();
+const allEras = await fetchEras();
+const totalCount = await countReligions();
+
+// Filter religions by status
+const religions = allReligions.filter(r => r.status === status);
+
+// Helper function to format year display
+const formatYear = (year: number) => year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+
+// Helper function to get religions for an era
+const getReligionsForEra = (era: any) => {
+  return religions.filter(religion =>
+    religion.foundingYear >= era.startYear &&
+    religion.foundingYear <= era.endYear
+  );
+};
+
+// Get status display name
+const statusDisplayNames = {
+  'active': 'Active',
+  'extinct': 'Extinct',
+  'evolved': 'Evolved'
+};
+const statusDisplay = statusDisplayNames[status.toLowerCase()] || status;
+
+// Get status description
+const statusDescriptions = {
+  'active': 'Religious traditions that continue to be practiced in the present day, with active communities and followers.',
+  'extinct': 'Belief systems that no longer have active practitioners, though their historical impact may still be significant.',
+  'evolved': 'Ancient beliefs that have transformed significantly into newer religious movements while maintaining some continuity.'
+};
+const statusDescription = statusDescriptions[status.toLowerCase()] || '';
+
+// SEO meta
+const pageTitle = `${statusDisplay} Religious Traditions - Vertical Timeline`;
+const canonicalUrl = new URL(`/vertical-timeline/status/${slug}/`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
+const description = `Explore ${statusDisplay.toLowerCase()} religious traditions throughout human history with our interactive vertical timeline. ${statusDescription}`;
+---
+
+<Layout title={pageTitle}>
+  <head slot="head">
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <Header />
+  
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">{statusDisplay} Religious Traditions</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        {statusDescription}
+      </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This vertical timeline visualization presents a chronological view of {statusDisplay.toLowerCase()} religious traditions throughout human history.</p>
+        <p>Each entry represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {religions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+    
+    <TimelineFilters currentView="vertical" initialFilters={{ eras: [], continents: [], beliefs: [], statuses: [status] }} />
+    
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <div id="timeline-container" class="mt-4">
+          <div id="vertical-view">
+            <VerticalTimeline client:only="react" religions={religions} eras={allEras} />
+            
+            <!-- SEO-friendly fallback content (hidden visually but available to search engines) -->
+            <div class="sr-only">
+              <h2>Timeline of {statusDisplay} Religious Traditions</h2>
+              <div>
+                {allEras.map((era) => {
+                  const eraReligions = getReligionsForEra(era);
+                  return eraReligions.length > 0 && (
+                    <section key={`era-${era.id}`}>
+                      <h3>{era.name} ({formatYear(era.startYear)} to {formatYear(era.endYear)})</h3>
+                      <ul>
+                        {eraReligions.map((religion) => (
+                          <li key={`religion-${religion.id}`}>
+                            <h4>{religion.name} ({formatYear(religion.foundingYear)})</h4>
+                            <p>{religion.summary}</p>
+                            {religion.beliefs?.length > 0 && (
+                              <div>
+                                <h5>Key Beliefs:</h5>
+                                <ul>
+                                  {religion.beliefs.map((belief, index) => (
+                                    <li key={`belief-${religion.id}-${index}`}>{belief}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <Footer />
+</Layout>

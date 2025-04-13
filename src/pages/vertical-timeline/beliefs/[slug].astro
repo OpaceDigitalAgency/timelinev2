@@ -1,0 +1,132 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import TimelineFilters from '../../../components/TimelineFilters.astro';
+import VerticalTimeline from '../../../components/VerticalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../../lib/services/religionService';
+
+export async function getStaticPaths() {
+  const religions = await fetchReligions();
+  
+  // Get all unique beliefs
+  const allBeliefs = new Set();
+  religions.forEach(religion => {
+    if (religion.beliefs && Array.isArray(religion.beliefs)) {
+      religion.beliefs.forEach(belief => allBeliefs.add(belief));
+    }
+  });
+  
+  return Array.from(allBeliefs).map(belief => {
+    const slug = belief.toLowerCase().replace(/\s+/g, '-');
+    return {
+      params: { slug },
+      props: { belief }
+    };
+  });
+}
+
+const { belief } = Astro.props;
+const { slug } = Astro.params;
+
+// Get all data
+const allReligions = await fetchReligions();
+const allEras = await fetchEras();
+const totalCount = await countReligions();
+
+// Filter religions by belief
+const religions = allReligions.filter(r => 
+  r.beliefs?.some(b => b.toLowerCase() === belief.toLowerCase())
+);
+
+// Helper function to format year display
+const formatYear = (year: number) => year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+
+// Helper function to get religions for an era
+const getReligionsForEra = (era: any) => {
+  return religions.filter(religion =>
+    religion.foundingYear >= era.startYear &&
+    religion.foundingYear <= era.endYear
+  );
+};
+
+// SEO meta
+const pageTitle = `${belief} - Religious Traditions Vertical Timeline`;
+const canonicalUrl = new URL(`/vertical-timeline/beliefs/${slug}/`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
+const description = `Explore religious traditions that include ${belief} as a key belief throughout human history with our interactive vertical timeline.`;
+---
+
+<Layout title={pageTitle}>
+  <head slot="head">
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <Header />
+  
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">Religious Traditions with {belief}</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        Explore how religious traditions incorporating {belief} have evolved throughout human history.
+      </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This vertical timeline visualization presents a chronological view of religious traditions that include {belief} as a key belief.</p>
+        <p>Each entry represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {religions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+    
+    <TimelineFilters currentView="vertical" initialFilters={{ eras: [], continents: [], beliefs: [belief], statuses: [] }} />
+    
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <div id="timeline-container" class="mt-4">
+          <div id="vertical-view">
+            <VerticalTimeline client:only="react" religions={religions} eras={allEras} />
+            
+            <!-- SEO-friendly fallback content (hidden visually but available to search engines) -->
+            <div class="sr-only">
+              <h2>Timeline of Religious Traditions with {belief}</h2>
+              <div>
+                {allEras.map((era) => {
+                  const eraReligions = getReligionsForEra(era);
+                  return eraReligions.length > 0 && (
+                    <section key={`era-${era.id}`}>
+                      <h3>{era.name} ({formatYear(era.startYear)} to {formatYear(era.endYear)})</h3>
+                      <ul>
+                        {eraReligions.map((religion) => (
+                          <li key={`religion-${religion.id}`}>
+                            <h4>{religion.name} ({formatYear(religion.foundingYear)})</h4>
+                            <p>{religion.summary}</p>
+                            {religion.beliefs?.length > 0 && (
+                              <div>
+                                <h5>Key Beliefs:</h5>
+                                <ul>
+                                  {religion.beliefs.map((b, index) => (
+                                    <li key={`belief-${religion.id}-${index}`}>{b}{b === belief ? ' ★' : ''}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <Footer />
+</Layout>

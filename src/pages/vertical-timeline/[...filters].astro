@@ -1,0 +1,335 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import TimelineFilters from '../../components/TimelineFilters.astro';
+import VerticalTimeline from '../../components/VerticalTimeline';
+import { fetchReligions, fetchEras, countReligions } from '../../lib/services/religionService';
+import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+
+export function getStaticPaths() {
+  return [
+    { params: { filters: undefined } },
+    // We'll generate the rest dynamically
+  ];
+}
+
+// Get the filter path from the URL
+const { filters } = Astro.params;
+
+// Get all data
+const allReligions = await fetchReligions();
+const allEras = await fetchEras();
+const totalCount = await countReligions();
+
+// Parse the filter path into filter categories
+function parseFilterPath(path) {
+  if (!path) return { eras: [], continents: [], beliefs: [], statuses: [] };
+  
+  const filterObj = {
+    eras: [],
+    continents: [],
+    beliefs: [],
+    statuses: [],
+  };
+  
+  // Convert era names to IDs
+  const eraMap = new Map(allEras.map(era => [
+    era.name.toLowerCase().replace(/\s+/g, '-'), 
+    era.id
+  ]));
+  
+  // Get all possible values
+  const allBeliefs = [...new Set(allReligions.flatMap(r => r.beliefs || []).map(b => b.toLowerCase().replace(/\s+/g, '-')))];
+  const allContinents = [...new Set(allReligions.map(r => r.continent?.toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
+  const allStatuses = [...new Set(allReligions.map(r => r.status?.toLowerCase()).filter(Boolean))];
+  
+  // Handle both array and string formats
+  let pathParts = Array.isArray(path) ? path : [path];
+  
+  // Check if this is a specific filter type
+  if (pathParts.length >= 2) {
+    const filterType = pathParts[0];
+    const filterValue = pathParts.slice(1).join('/');
+    
+    switch (filterType) {
+      case 'era':
+        for (const [eraName, eraId] of eraMap.entries()) {
+          if (eraName === filterValue || eraName.includes(filterValue) || filterValue.includes(eraName)) {
+            filterObj.eras.push(eraId);
+            break;
+          }
+        }
+        break;
+      case 'origin':
+        for (const continent of allContinents) {
+          if (continent === filterValue || continent.includes(filterValue) || filterValue.includes(continent)) {
+            filterObj.continents.push(continent);
+            break;
+          }
+        }
+        break;
+      case 'beliefs':
+        for (const belief of allBeliefs) {
+          if (belief === filterValue || belief.includes(filterValue) || filterValue.includes(belief)) {
+            filterObj.beliefs.push(belief);
+            break;
+          }
+        }
+        break;
+      case 'status':
+        for (const status of allStatuses) {
+          if (status === filterValue || status.includes(filterValue) || filterValue.includes(status)) {
+            filterObj.statuses.push(status);
+            break;
+          }
+        }
+        break;
+    }
+  }
+  
+  return filterObj;
+}
+
+const activeFilters = parseFilterPath(filters);
+
+// Filter religions based on activeFilters
+function religionMatchesFilters(religion, filters) {
+  // Check each filter type
+  if (filters.eras.length > 0) {
+    const match = filters.eras.includes(String(religion.era));
+    if (!match) return false;
+  }
+  
+  if (filters.continents.length > 0) {
+    const match = filters.continents.some(c => {
+      const religionContinent = religion.continent?.toLowerCase().replace(/\s+/g, '-');
+      return religionContinent?.includes(c) || c.includes(religionContinent);
+    });
+    if (!match) return false;
+  }
+  
+  if (filters.beliefs.length > 0) {
+    const match = filters.beliefs.some(b => {
+      return religion.beliefs?.some(belief => {
+        const beliefSlug = belief.toLowerCase().replace(/\s+/g, '-');
+        return beliefSlug.includes(b) || b.includes(beliefSlug);
+      });
+    });
+    if (!match) return false;
+  }
+  
+  if (filters.statuses.length > 0) {
+    const match = filters.statuses.includes(religion.status);
+    if (!match) return false;
+  }
+  
+  return true;
+}
+
+const religions = allReligions.filter(r => religionMatchesFilters(r, activeFilters));
+
+// Helper function to format year display
+const formatYear = (year: number) => year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+
+// Helper function to get religions for an era
+const getReligionsForEra = (era: any) => {
+  return religions.filter(religion =>
+    religion.foundingYear >= era.startYear &&
+    religion.foundingYear <= era.endYear
+  );
+};
+
+// SEO meta/canonical
+function filtersToTitle(filterPath) {
+  if (!filterPath) return 'Vertical Timeline of Religious Traditions';
+  
+  // Handle both array and string formats
+  let pathParts = Array.isArray(filterPath) ? filterPath : [filterPath];
+  
+  if (pathParts.length >= 2) {
+    const filterType = pathParts[0];
+    const filterValue = pathParts.slice(1).join('/');
+    
+    // Convert hyphens to spaces and capitalize each word
+    const formattedValue = filterValue.split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    switch (filterType) {
+      case 'era':
+        return `${formattedValue} Era - Vertical Timeline of Religious Traditions`;
+      case 'origin':
+        return `Religious Traditions from ${formattedValue} - Vertical Timeline`;
+      case 'beliefs':
+        return `${formattedValue} Religious Traditions - Vertical Timeline`;
+      case 'status':
+        return `${formattedValue.charAt(0).toUpperCase() + formattedValue.slice(1)} Religious Traditions - Vertical Timeline`;
+      default:
+        return 'Vertical Timeline of Religious Traditions';
+    }
+  }
+  
+  return 'Vertical Timeline of Religious Traditions';
+}
+
+const pageTitle = filtersToTitle(filters);
+const canonicalUrl = new URL(`/vertical-timeline/${Array.isArray(filters) ? filters.join('/') : filters || ''}`, Astro.site || 'https://evolution-of-religion.netlify.app').href;
+---
+
+<Layout title={pageTitle}>
+  <head slot="head">
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={pageTitle} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <Header />
+  
+  <div class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-2">The Evolution of Religious Beliefs</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mb-2">
+        Explore how religious beliefs have evolved, connected, and diverged throughout human history with our interactive timeline.
+      </p>
+      <div class="text-sm text-gray-600 mb-4">
+        <p>This vertical timeline visualization presents a chronological view of religious traditions from prehistory to modern times.</p>
+        <p>Each entry represents a distinct religious tradition, with colors indicating whether the religion is active, extinct, or evolved into newer forms.</p>
+        <p>The timeline is organized by historical eras, making it easy to see which religions emerged during specific periods.</p>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Showing {religions.length} of {totalCount} total religions in the database.
+      </p>
+    </div>
+    
+    <TimelineFilters currentView="vertical" initialFilters={activeFilters} />
+    
+    <main class="flex-grow">
+      <div class="container mx-auto px-4 py-4">
+        <!-- Timeline Controls -->
+        <div class="flex justify-end mb-4">
+          <div class="flex space-x-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1">
+            <button id="zoom-in-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Zoom In">
+              <ZoomIn className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <button id="zoom-out-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Zoom Out">
+              <ZoomOut className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+            <button id="refresh-timeline-btn" class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Refresh Timeline">
+              <RefreshCw className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+          </div>
+        </div>
+        
+        <!-- Vertical Timeline View -->
+        <div id="timeline-container" class="mt-4">
+          <div id="vertical-view">
+            <VerticalTimeline client:only="react" religions={religions} eras={allEras} />
+            
+            <!-- SEO-friendly fallback content (hidden visually but available to search engines) -->
+            <div class="sr-only">
+              <h2>Timeline of Religious Traditions by Era</h2>
+              <div>
+                {allEras.map((era) => {
+                  const eraReligions = getReligionsForEra(era);
+                  return eraReligions.length > 0 && (
+                    <section key={`era-${era.id}`}>
+                      <h3>{era.name} ({formatYear(era.startYear)} to {formatYear(era.endYear)})</h3>
+                      <ul>
+                        {eraReligions.map((religion) => (
+                          <li key={`religion-${religion.id}`}>
+                            <h4>{religion.name} ({formatYear(religion.foundingYear)})</h4>
+                            <p>{religion.summary}</p>
+                            {religion.beliefs?.length > 0 && (
+                              <div>
+                                <h5>Key Beliefs:</h5>
+                                <ul>
+                                  {religion.beliefs.map((belief, index) => (
+                                    <li key={`belief-${religion.id}-${index}`}>{belief}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <a href={`/religions/${religion.id}`}>View details about {religion.name}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <div class="bg-gray-100 py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">Understanding the Timeline</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-green-500"></div>
+            <h3 class="font-semibold">Active Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Religious traditions that continue to be practiced in the present day, with active communities and followers.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-gray-400"></div>
+            <h3 class="font-semibold">Extinct Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Belief systems that no longer have active practitioners, though their historical impact may still be significant.
+          </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center space-x-2 mb-3">
+            <div class="w-4 h-4 rounded-full bg-amber-500"></div>
+            <h3 class="font-semibold">Evolved Religions</h3>
+          </div>
+          <p class="text-gray-600 text-sm">
+            Ancient beliefs that have transformed significantly into newer religious movements while maintaining some continuity.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <Footer />
+</Layout>
+
+<script>
+  // Timeline zoom and refresh controls
+  const zoomInBtn = document.getElementById('zoom-in-btn');
+  const zoomOutBtn = document.getElementById('zoom-out-btn');
+  const refreshTimelineBtn = document.getElementById('refresh-timeline-btn');
+  
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-zoom', { detail: 'in' }));
+    });
+  }
+  
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('timeline-zoom', { detail: 'out' }));
+    });
+  }
+  
+  if (refreshTimelineBtn) {
+    refreshTimelineBtn.addEventListener('click', () => {
+      refreshTimelineBtn.classList.add('animate-spin');
+      document.dispatchEvent(new CustomEvent('timeline-refresh'));
+      
+      // Remove spinning animation after a delay
+      setTimeout(() => {
+        refreshTimelineBtn.classList.remove('animate-spin');
+      }, 1000);
+    });
+  }
+</script>
