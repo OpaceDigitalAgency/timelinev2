@@ -44,8 +44,7 @@ export async function fetchEras(): Promise<Era[]> {
 }
 
 export async function fetchReligions(): Promise<Religion[]> {
-  console.log("Fetching religions from database...");
-  
+  // Fetch all religions (consider adding .limit(1000) if dataset is very large)
   const { data: religionData, error: religionError } = await supabase
     .from('religions')
     .select(`
@@ -58,36 +57,20 @@ export async function fetchReligions(): Promise<Religion[]> {
       religion_branches (branch_name)
     `)
     .order('founding_year');
-
+ 
   if (religionError) {
     console.error('Error fetching religions:', religionError);
     return [];
   }
 
-  console.log(`Retrieved ${religionData.length} religions from database`);
-  
-  // Log a sample religion to inspect its structure
-  if (religionData.length > 0) {
-    console.log("Sample religion data:", JSON.stringify(religionData[0], null, 2));
-  }
-
-  // Get religion relationships
+  // Fetch all religion relationships
   const { data: relationshipsData, error: relationshipsError } = await supabase
     .from('religion_relationships')
     .select('*');
-
+ 
   if (relationshipsError) {
     console.error('Error fetching religion relationships:', relationshipsError);
     return [];
-  }
-
-  console.log(`Retrieved ${relationshipsData.length} religion relationships from database`);
-  
-  // Log a sample relationship to inspect its structure
-  if (relationshipsData.length > 0) {
-    console.log("Sample relationship data:", JSON.stringify(relationshipsData[0], null, 2));
-  } else {
-    console.warn("No religion relationships found in the database!");
   }
 
   // Build relationships map
@@ -95,49 +78,20 @@ export async function fetchReligions(): Promise<Religion[]> {
   const childMap: Record<string, string[]> = {};
 
   relationshipsData.forEach(rel => {
-    // Add to child's parent map
-    if (!parentMap[rel.child_id]) {
-      parentMap[rel.child_id] = [];
-    }
+    if (!parentMap[rel.child_id]) parentMap[rel.child_id] = [];
     parentMap[rel.child_id].push(rel.parent_id);
-    
-    // Add to parent's child map
-    if (!childMap[rel.parent_id]) {
-      childMap[rel.parent_id] = [];
-    }
+    if (!childMap[rel.parent_id]) childMap[rel.parent_id] = [];
     childMap[rel.parent_id].push(rel.child_id);
   });
-  
-  // Log the relationship maps
-  console.log(`Built relationship maps: ${Object.keys(parentMap).length} children with parents, ${Object.keys(childMap).length} parents with children`);
 
   const mappedReligions = religionData.map(religion => {
-    // Log raw belief data for debugging
-    console.log(`Religion ${religion.name} raw beliefs:`, JSON.stringify(religion.religion_beliefs, null, 2));
-    
     const allBeliefs = religion.religion_beliefs.map(b => b.belief);
-    console.log(`Religion ${religion.name} all beliefs:`, allBeliefs);
-    
     const beliefs = allBeliefs.filter(isValidBeliefSystem);
-    console.log(`Religion ${religion.name} valid beliefs:`, beliefs);
-    
     const practices = religion.religion_practices.map(p => p.practice);
     const holyTexts = religion.religion_texts.map(t => t.text_name);
     const keyFigures = religion.religion_figures.map(f => f.figure_name);
     const branches = religion.religion_branches.map(b => b.branch_name);
-    
-    // Check if this religion has parents or children
-    const hasParents = parentMap[religion.id] && parentMap[religion.id].length > 0;
-    const hasChildren = childMap[religion.id] && childMap[religion.id].length > 0;
-    
-    if (hasParents) {
-      console.log(`Religion ${religion.name} has parents:`, parentMap[religion.id]);
-    }
-    
-    if (hasChildren) {
-      console.log(`Religion ${religion.name} has children:`, childMap[religion.id]);
-    }
-    
+
     return {
       id: religion.id,
       name: religion.name,
@@ -160,13 +114,9 @@ export async function fetchReligions(): Promise<Religion[]> {
       era: religion.era?.id || ''
     };
   });
-  
-  // Log summary of mapped religions
-  console.log(`Mapped ${mappedReligions.length} religions with the following statistics:`);
-  console.log(`- Religions with valid beliefs: ${mappedReligions.filter(r => r.beliefs.length > 0).length}`);
-  console.log(`- Religions with parent relationships: ${mappedReligions.filter(r => r.parentReligions.length > 0).length}`);
-  console.log(`- Religions with child relationships: ${mappedReligions.filter(r => r.childReligions.length > 0).length}`);
-  
+
+  // Only log summary information
+  console.log(`Fetched ${mappedReligions.length} religions and ${relationshipsData.length} relationships from database.`);
   return mappedReligions;
 }
 
