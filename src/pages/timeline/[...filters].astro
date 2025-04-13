@@ -12,26 +12,28 @@ export async function getStaticPaths() {
   // This limits the number of pages generated during build
   return [
     // Base path with no filters
-    { params: { filters: [] } },
-    
-    // A few common filters
-    { params: { filters: ['era', 'prehistoric'] } },
-    { params: { filters: ['belief', 'monotheism'] } },
-    { params: { filters: ['continent', 'asia'] } },
-    { params: { filters: ['status', 'active'] } }
+    { params: { filters: undefined } },
+
+    // A few common filters (joined by "-")
+    { params: { filters: 'era-prehistoric' } },
+    { params: { filters: 'belief-monotheism' } },
+    { params: { filters: 'continent-asia' } },
+    { params: { filters: 'status-active' } }
   ];
 }
 
-const { filters = [] } = Astro.params;
+const { filters } = Astro.params;
 
-// Helper: Parse filters from URL segments
-function parseFilters(filtersArr) {
+// Helper: Parse filters from URL string (joined by "-")
+function parseFilters(filtersStr) {
   const filterObj = {
     eras: [],
     continents: [],
     beliefs: [],
     statuses: [],
   };
+  if (!filtersStr) return filterObj;
+  const filtersArr = filtersStr.split('-');
   let i = 0;
   while (i < filtersArr.length) {
     const key = filtersArr[i];
@@ -65,15 +67,11 @@ const totalCount = await countReligions();
 
 // Filter religions based on activeFilters
 function religionMatchesFilters(religion, filters) {
-  // Add debug logging
-  console.log(`Checking religion: ${religion.name}`);
-  console.log(`Religion properties: era=${religion.era}, continent=${religion.continent}, beliefs=${JSON.stringify(religion.beliefs)}, status=${religion.status}`);
-  console.log(`Active filters: ${JSON.stringify(filters)}`);
+  // Debug logging removed for clean build output
   
   // Check each filter type
   if (filters.eras.length > 0) {
     const match = filters.eras.includes(String(religion.era));
-    console.log(`Era filter match: ${match}`);
     if (!match) return false;
   }
   
